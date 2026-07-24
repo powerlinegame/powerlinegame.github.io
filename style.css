@@ -1,0 +1,233 @@
+body {
+
+    background:#3a3a3a;
+
+    font-family:
+        "Segoe UI",
+        Tahoma,
+        Arial;
+
+    margin:0;
+
+}
+
+
+.window {
+
+    width:900px;
+
+    margin:40px auto;
+
+    background:#d6d6d6;
+
+    border:1px solid #777;
+
+}
+
+
+.titlebar {
+
+    background:#1e5799;
+
+    color:white;
+
+    padding:8px;
+
+    font-weight:bold;
+
+}
+
+
+#clock {
+
+    float:right;
+
+}
+
+
+
+.tabs {
+
+    background:#bbb;
+
+    padding:4px;
+
+}
+
+
+.tab {
+
+    display:inline-block;
+
+    padding:5px 15px;
+
+    border:1px solid #888;
+
+    background:#eee;
+
+    cursor:pointer;
+
+}
+
+.tab.active {
+
+    background:#fff;
+
+    border-bottom-color:#fff;
+
+}
+
+
+.panel {
+
+    background:white;
+
+    border:1px solid #888;
+
+    margin:8px;
+
+    flex:1;
+
+}
+
+
+.columns {
+
+    display:flex;
+
+}
+
+
+.panelTitle {
+
+    background:#ddd;
+
+    border-bottom:1px solid #aaa;
+
+    padding:5px;
+
+    font-weight:bold;
+
+}
+
+
+pre {
+
+    padding:10px;
+
+    font-family:monospace;
+
+    min-height:250px;
+
+}
+
+
+input {
+
+    width:90%;
+
+    margin:15px;
+
+    font-size:18px;
+
+}
+
+
+button {
+
+    padding:8px 20px;
+
+    margin:5px;
+
+}
+
+
+.progress {
+
+    height:12px;
+
+    background:#aaa;
+
+}
+
+
+#progressBar {
+
+    height:100%;
+
+    background:#2b72d6;
+
+    width:0%;
+
+}
+
+
+.hidden {
+
+    display:none;
+
+}
+
+.transmitArea {
+
+    margin:15px;
+
+}
+
+#transmitBtn {
+
+    width:100%;
+    padding:10px;
+
+    font-size:16px;
+    font-weight:bold;
+
+    background:#1e5799;
+    color:white;
+
+    border:1px solid #154a80;
+    cursor:pointer;
+
+}
+
+#transmitBtn:disabled {
+
+    background:#888;
+    border-color:#777;
+    cursor:not-allowed;
+
+}
+
+.status {
+
+    margin-top:10px;
+    font-size:14px;
+    line-height:1.5;
+    color:#555;
+
+}
+
+.status.ok {
+
+    color:#1a7a1a;
+
+}
+
+.status.error {
+
+    color:#a02020;
+
+}
+
+.status.busy {
+
+    color:#1e5799;
+
+}
+
+#replay {
+
+    margin-top:10px;
+    width:calc(100% - 30px);
+
+}
