@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Powerline.io</title>
+    <title>Powerline.io Classic</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -60,6 +60,15 @@
             display: block;
             touch-action: none;
         }
+
+        /* Pulse glowing animation for play button */
+        .btn-glow {
+            box-shadow: 0 0 15px rgba(204, 255, 0, 0.4);
+            transition: all 0.2s ease-in-out;
+        }
+        .btn-glow:hover {
+            box-shadow: 0 0 25px rgba(204, 255, 0, 0.7);
+        }
     </style>
 </head>
 <body class="relative w-screen h-screen overflow-hidden bg-cyber-bg">
@@ -81,7 +90,7 @@
                 <div class="mt-0.5 text-xs text-gray-300">Length: <span id="hudLength" class="text-cyber-yellow font-bold">40</span></div>
             </div>
 
-            <!-- Minimap -->
+            <!-- Minimap Radar -->
             <div class="cyber-panel p-1 rounded-xl border border-cyber-cyan/30 w-28 h-28 md:w-36 md:h-36 relative overflow-hidden hidden sm:block">
                 <div class="absolute top-1 left-1.5 text-[8px] text-cyber-cyan font-bold tracking-wider z-10">RADAR</div>
                 <canvas id="minimapCanvas" class="w-full h-full rounded"></canvas>
@@ -110,7 +119,7 @@
         <!-- Bottom Controls / Status Bar -->
         <div class="flex justify-between items-end">
             <div class="text-xs text-gray-400 font-mono hidden md:block">
-                Powerline Engine v2.0 | Proximity Electricity Boost
+                Powerline Engine v2.5 | Unblocked & Online
             </div>
             <div class="cyber-panel px-3 py-1.5 rounded-lg text-[11px] text-gray-300 flex items-center space-x-2">
                 <span class="text-cyber-lime"><i class="fa-solid fa-keyboard mr-1"></i> WASD / Arrow Keys</span>
@@ -120,35 +129,45 @@
         </div>
     </div>
 
-    <!-- Main Entry Modal -->
-    <div id="menuModal" class="absolute inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center z-50 p-4">
-        <div class="cyber-panel p-8 rounded-2xl border-2 border-cyber-lime max-w-md w-full text-center shadow-2xl">
-            <div class="mb-2 text-cyber-lime font-bold tracking-widest text-xs uppercase">Unblocked Recreations Plus</div>
-            <h1 class="text-3xl md:text-4xl font-black text-white mb-6 tracking-wider neon-glow">POWERLINE.IO</h1>
+    <!-- Main Entry Modal (Unboxed floating layout) -->
+    <div id="menuModal" class="absolute inset-0 bg-black/75 backdrop-blur-md flex flex-col items-center justify-center z-50 p-6">
+        <div class="flex flex-col items-center w-full max-w-sm sm:max-w-md text-center space-y-6">
             
-            <div class="space-y-4 mb-6 text-left">
-                <div>
-                    <label class="block text-xs text-cyber-lime font-bold mb-1 uppercase tracking-wider">Player Name</label>
-                    <input type="text" id="playerNameInput" value="PowerRider" maxlength="14" class="w-full bg-cyber-dark border border-cyber-lime/50 rounded-lg px-4 py-3 text-white font-bold focus:outline-none focus:border-cyber-lime focus:ring-1 focus:ring-cyber-lime">
+            <!-- Top: Logo Image -->
+            <div class="w-full flex justify-center mb-2">
+                <img id="game-logo" src="logo.png" alt="Powerline.io Logo" class="max-w-[280px] sm:max-w-[340px] h-auto drop-shadow-[0_0_20px_rgba(204,255,0,0.5)] transition-transform duration-300 hover:scale-105" onerror="this.onerror=null; this.src='https://placehold.co/360x100/040d1a/ccff00?text=POWERLINE.IO&font=ubuntu';">
+            </div>
+
+            <!-- Middle: Player Name Input -->
+            <div class="w-full text-left">
+                <label class="block text-xs text-cyber-lime font-bold mb-1.5 uppercase tracking-widest text-center">Enter Nickname</label>
+                <input type="text" id="playerNameInput" value="PowerRider" maxlength="14" class="w-full bg-cyber-dark/80 border-2 border-cyber-lime/60 rounded-xl px-5 py-3.5 text-center text-white text-lg font-bold focus:outline-none focus:border-cyber-lime focus:ring-2 focus:ring-cyber-lime/50 shadow-inner">
+            </div>
+
+            <!-- Action: Play Button -->
+            <button id="playBtn" class="w-full bg-gradient-to-r from-lime-400 to-green-500 hover:from-lime-300 hover:to-green-400 text-cyber-dark font-black py-4 px-8 rounded-xl transition transform hover:-translate-y-1 text-xl tracking-wider uppercase flex items-center justify-center gap-3 cursor-pointer btn-glow">
+                <i class="fa-solid fa-play text-xl"></i>
+                <span id="playBtnText">PLAY NOW</span>
+            </button>
+
+            <!-- Below Play Button: Connection Status & Server Info -->
+            <div id="connectionStatus" class="flex flex-col items-center space-y-2 text-xs text-gray-300 font-medium pt-2">
+                <div class="flex items-center gap-2">
+                    <i class="fa-solid fa-wifi text-cyber-lime animate-pulse"></i>
+                    <span id="statusText" class="tracking-wide">Ready to connect to P2P . . .</span>
                 </div>
-
-                <button id="playBtn" class="w-full bg-gradient-to-r from-lime-400 to-green-600 hover:from-lime-300 hover:to-green-500 text-cyber-dark font-black py-4 px-6 rounded-xl shadow-lg transition transform hover:-translate-y-0.5 text-lg uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer">
-                    <i class="fa-solid fa-play"></i>
-                    <span id="playBtnText">PLAY NOW</span>
-                </button>
+                <div class="text-[11px] text-gray-500 font-mono">
+                    Dynamic Auto-Server Host Migration Active
+                </div>
             </div>
 
-            <div id="connectionStatus" class="text-xs text-gray-400 border-t border-gray-800/80 pt-4 flex items-center justify-center gap-2">
-                <i class="fa-solid fa-wifi text-cyber-lime animate-pulse"></i>
-                <span id="statusText">Ready to connect via P2P . . .</span>
-            </div>
         </div>
     </div>
 
     <!-- Game Over Modal -->
     <div id="gameOverModal" class="absolute inset-0 bg-black/85 backdrop-blur-md hidden flex items-center justify-center z-50 p-4">
         <div class="cyber-panel p-8 rounded-2xl border-2 border-cyber-red max-w-md w-full text-center shadow-2xl">
-            <div class="text-cyber-red font-black text-xs tracking-widest uppercase mb-1">CUT</div>
+            <div class="text-cyber-red font-black text-xs tracking-widest uppercase mb-1">CIRCUIT SHORTED</div>
             <h2 class="text-4xl font-black text-white mb-6 tracking-wider">YOU DIED</h2>
 
             <div class="grid grid-cols-2 gap-4 mb-6 bg-cyber-dark p-4 rounded-xl border border-gray-800">
@@ -268,7 +287,7 @@
                 context.shadowBlur = 10;
                 context.fillStyle = this.color;
 
-                // Draw rounded square diamond pellet shape like Image 1
+                // Draw rounded square diamond pellet shape matching Image 1
                 context.beginPath();
                 context.roundRect(this.x - pSize / 2, this.y - pSize / 2, pSize, pSize, 2);
                 context.fill();
@@ -315,7 +334,7 @@
                 this.y = y;
                 this.dir = dir;
                 this.nextDir = dir;
-                this.color = color; // e.g. '#ccff00' for neon yellow-green
+                this.color = color; // e.g. '#ccff00'
                 this.isBot = isBot;
                 this.alive = true;
                 this.score = 0;
@@ -385,7 +404,7 @@
                     if (this.sparks[i].life <= 0) this.sparks.splice(i, 1);
                 }
 
-                // Spawn electricity sparks along sides when boosting (Image 1 aesthetic)
+                // Spawn electricity sparks along sides when boosting
                 if (this.isBoosting) {
                     this.sparks.push(new ElectricSpark(this.x, this.y, '#ffffff'));
                     this.sparks.push(new ElectricSpark(this.x - this.dir.x * 10, this.y - this.dir.y * 10, this.color));
@@ -462,7 +481,7 @@
 
                     const segmentCount = other.path.length - 1;
                     for (let i = 0; i < segmentCount; i++) {
-                        // Skip immediate head segment of self
+                        // Skip immediate head segment of self to allow turns without self-cut
                         if (other === this && i >= segmentCount - 1) continue;
 
                         const p1 = other.path[i];
@@ -642,17 +661,17 @@
                 context.arc(this.x, this.y, HEAD_RADIUS + 2, 0, Math.PI * 2);
                 context.stroke();
 
-                // Draw Crown Icon above Leader (Image 1)
+                // Draw Crown Icon above Leader
                 if (isLeader) {
                     context.fillStyle = '#fcee0a';
                     context.shadowColor = '#fcee0a';
                     context.shadowBlur = 12;
                     context.font = '900 16px "Font Awesome 6 Free"';
                     context.textAlign = 'center';
-                    context.fillText('\u00f521', this.x, this.y - 18); // Crown emoji/icon
+                    context.fillText('\u00f521', this.x, this.y - 18);
                 }
 
-                // Draw Player Name Tag Centered below Head (Image 1)
+                // Draw Player Name Tag Centered below Head
                 context.font = 'bold 12px Ubuntu, sans-serif';
                 context.fillStyle = 'rgba(240, 240, 240, 0.85)';
                 context.shadowColor = '#000000';
@@ -664,7 +683,6 @@
             }
         }
 
-        // Math Helper: distance to line segment
         function distToSegment(p, v, w) {
             const l2 = (v.x - w.x) ** 2 + (v.y - w.y) ** 2;
             if (l2 === 0) return Math.hypot(p.x - v.x, p.y - v.y);
@@ -720,7 +738,6 @@
         let isHost = false;
         let hostConnection = null;
         let clientConnections = [];
-        let peerOrder = [];
 
         function updateStatus(msg) {
             document.getElementById('statusText').innerText = msg;
@@ -892,11 +909,10 @@
         }
 
         function drawBackground() {
-            // Dark navy background matching Image 1
             ctx.fillStyle = '#040d1a';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-            // Render soft circular dotted pattern background (Image 1)
+            // Render soft circular dotted pattern background matching Image 1
             ctx.save();
             ctx.fillStyle = 'rgba(15, 35, 60, 0.45)';
 
@@ -1059,6 +1075,7 @@
             document.getElementById('gameOverModal').classList.remove('hidden');
         }
 
+        // Keyboard Movement Controls
         window.addEventListener('keydown', e => {
             if (!player || !player.alive) return;
 
@@ -1113,7 +1130,7 @@
             }
         });
 
-        // Event Buttons
+        // Menu Event Listeners
         document.getElementById('playBtn').addEventListener('click', () => {
             sound.init();
             const name = document.getElementById('playerNameInput').value.trim() || 'PowerRider';
