@@ -1,1150 +1,961 @@
 <!DOCTYPE html>
-<html lang="en" class="dark">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Powerline.io Classic</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Powerline.io</title>
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
-    <script>
-        tailwind.config = {
-            darkMode: 'class',
-            theme: {
-                extend: {
-                    colors: {
-                        cyber: {
-                            bg: '#040d1a',
-                            cyan: '#00f3ff',
-                            lime: '#ccff00',
-                            orange: '#ff6600',
-                            red: '#ff0044',
-                            yellow: '#fcee0a',
-                            dark: '#081426'
-                        }
-                    }
-                }
-            }
-        }
-    </script>
-    
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Ubuntu:wght@500;700&family=Orbitron:wght@700;900&display=swap');
-        
         * {
+            margin: 0;
+            padding: 0;
             box-sizing: border-box;
             user-select: none;
-            -webkit-user-select: none;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
 
-        body {
-            font-family: 'Ubuntu', sans-serif;
-            background-color: #040d1a;
-            color: #f3f4f6;
+        body, html {
+            width: 100%;
+            height: 100%;
             overflow: hidden;
-            touch-action: none;
+            background-color: #050b14;
+            color: #fff;
         }
 
-        .neon-glow {
-            text-shadow: 0 0 8px rgba(204, 255, 0, 0.8), 0 0 16px rgba(204, 255, 0, 0.4);
-        }
-
-        .cyber-panel {
-            background: rgba(4, 13, 26, 0.85);
-            backdrop-filter: blur(8px);
-            border: 1px solid rgba(0, 243, 255, 0.25);
-        }
-
-        canvas {
+        #game-canvas {
             display: block;
-            touch-action: none;
+            width: 100vw;
+            height: 100vh;
+            background-color: #060d1a;
         }
 
-        /* Pulse glowing animation for play button */
-        .btn-glow {
-            box-shadow: 0 0 15px rgba(204, 255, 0, 0.4);
-            transition: all 0.2s ease-in-out;
+        /* --- UI OVERLAYS --- */
+        .overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 20px;
         }
-        .btn-glow:hover {
-            box-shadow: 0 0 25px rgba(204, 255, 0, 0.7);
+
+        /* Menu Container (Unboxed) */
+        #menu-screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: rgba(5, 11, 20, 0.75);
+            backdrop-filter: blur(8px);
+            z-index: 10;
+            pointer-events: auto;
+        }
+
+        .menu-content {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+            max-width: 450px;
+            width: 90%;
+            text-align: center;
+        }
+
+        #game-logo {
+            max-width: 380px;
+            width: 100%;
+            height: auto;
+            filter: drop-shadow(0 0 15px rgba(255, 0, 128, 0.6));
+        }
+
+        .logo-fallback {
+            font-size: 3rem;
+            font-weight: 900;
+            font-style: italic;
+            background: linear-gradient(135deg, #ff007f, #00f0ff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            display: none;
+        }
+
+        .input-group {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .input-group label {
+            font-size: 0.85rem;
+            letter-spacing: 2px;
+            color: #00f0ff;
+            text-transform: uppercase;
+            font-weight: 700;
+        }
+
+        input[type="text"] {
+            width: 100%;
+            padding: 14px;
+            border-radius: 8px;
+            border: 2px solid #00f0ff;
+            background: rgba(6, 20, 40, 0.8);
+            color: #fff;
+            font-size: 1.1rem;
+            text-align: center;
+            outline: none;
+            box-shadow: 0 0 10px rgba(0, 240, 255, 0.2);
+            transition: all 0.2s ease;
+        }
+
+        input[type="text"]:focus {
+            box-shadow: 0 0 20px rgba(0, 240, 255, 0.6);
+            border-color: #39ff14;
+        }
+
+        .btn-play {
+            width: 100%;
+            padding: 16px;
+            border: none;
+            border-radius: 8px;
+            background: linear-gradient(135deg, #39ff14, #00b300);
+            color: #050b14;
+            font-size: 1.4rem;
+            font-weight: 900;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            cursor: pointer;
+            box-shadow: 0 0 20px rgba(57, 255, 20, 0.4);
+            transition: transform 0.1s ease, box-shadow 0.2s ease;
+        }
+
+        .btn-play:hover {
+            transform: scale(1.02);
+            box-shadow: 0 0 30px rgba(57, 255, 20, 0.8);
+        }
+
+        .btn-play:active {
+            transform: scale(0.98);
+        }
+
+        .status-text {
+            font-size: 0.9rem;
+            color: #a0aec0;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background-color: #39ff14;
+            box-shadow: 0 0 8px #39ff14;
+        }
+
+        /* --- HUD ELEMENTS --- */
+        #leaderboard {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(5, 11, 20, 0.75);
+            border: 1px solid rgba(0, 240, 255, 0.3);
+            border-radius: 8px;
+            padding: 12px 16px;
+            min-width: 200px;
+            backdrop-filter: blur(4px);
+            pointer-events: auto;
+        }
+
+        #leaderboard h3 {
+            font-size: 0.85rem;
+            color: #00f0ff;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 8px;
+            border-bottom: 1px solid rgba(0, 240, 255, 0.2);
+            padding-bottom: 4px;
+        }
+
+        .lb-entry {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.9rem;
+            margin-bottom: 4px;
+            font-weight: 600;
+        }
+
+        .lb-entry.me {
+            color: #39ff14;
+        }
+
+        /* Killfeed */
+        #killfeed {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            display: flex;
+            flex-direction: column-reverse;
+            gap: 6px;
+            max-height: 200px;
+            overflow: hidden;
+            pointer-events: none;
+        }
+
+        .kf-item {
+            background: rgba(5, 11, 20, 0.8);
+            border-left: 3px solid #ff0055;
+            padding: 6px 12px;
+            border-radius: 4px;
+            font-size: 0.85rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            animation: fadeIn 0.2s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateX(-10px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        /* Death Screen Overlay */
+        #death-screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: rgba(5, 11, 20, 0.85);
+            backdrop-filter: blur(6px);
+            z-index: 9;
+            pointer-events: auto;
+        }
+
+        .death-card {
+            background: rgba(10, 20, 35, 0.9);
+            border: 2px solid #ff0055;
+            box-shadow: 0 0 30px rgba(255, 0, 85, 0.3);
+            border-radius: 12px;
+            padding: 30px;
+            text-align: center;
+            max-width: 380px;
+            width: 90%;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .death-title {
+            color: #ff0055;
+            font-size: 1.8rem;
+            font-weight: 900;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+        }
+
+        .stat-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin: 10px 0;
+        }
+
+        .stat-box {
+            background: rgba(5, 11, 20, 0.6);
+            padding: 10px;
+            border-radius: 6px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .stat-value {
+            font-size: 1.4rem;
+            font-weight: 800;
+            color: #00f0ff;
+        }
+
+        .stat-label {
+            font-size: 0.75rem;
+            color: #a0aec0;
+            text-transform: uppercase;
+        }
+
+        /* Minimap */
+        #minimap-container {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 140px;
+            height: 140px;
+            background: rgba(5, 11, 20, 0.75);
+            border: 1px solid rgba(0, 240, 255, 0.3);
+            border-radius: 8px;
+            overflow: hidden;
+            pointer-events: none;
+        }
+
+        #minimap {
+            width: 100%;
+            height: 100%;
         }
     </style>
 </head>
-<body class="relative w-screen h-screen overflow-hidden bg-cyber-bg">
+<body>
 
-    <!-- Main Game Canvas -->
-    <canvas id="gameCanvas" class="absolute inset-0 w-full h-full cursor-crosshair"></canvas>
+    <canvas id="game-canvas"></canvas>
 
-    <!-- In-Game HUD -->
-    <div id="hud" class="absolute inset-0 pointer-events-none flex flex-col justify-between p-4 md:p-6 z-20">
-        <!-- Top HUD Row -->
-        <div class="flex justify-between items-start">
-            <!-- Player Stats Box -->
-            <div class="cyber-panel px-5 py-3 rounded-xl border border-cyber-lime/40 shadow-lg">
-                <div class="text-[10px] text-cyber-lime font-bold tracking-widest uppercase flex items-center gap-2">
-                    <span>SCORE</span>
-                    <span id="roleBadge" class="text-[9px] px-1.5 py-0.5 rounded bg-cyber-lime/20 border border-cyber-lime/40 text-cyber-lime">INIT...</span>
-                </div>
-                <div id="hudScore" class="text-2xl md:text-3xl font-black text-white neon-glow">0</div>
-                <div class="mt-0.5 text-xs text-gray-300">Length: <span id="hudLength" class="text-cyber-yellow font-bold">40</span></div>
+    <!-- Main Menu -->
+    <div id="menu-screen">
+        <div class="menu-content">
+            <img src="logo.png" alt="Powerline.io" id="game-logo" onerror="this.style.display='none'; document.querySelector('.logo-fallback').style.display='block';">
+            <div class="logo-fallback">POWERLINE.IO</div>
+
+            <div class="input-group">
+                <label for="nickname">Enter Nickname</label>
+                <input type="text" id="nickname" maxlength="15" value="PowerRider" placeholder="Player Name" />
             </div>
 
-            <!-- Minimap Radar -->
-            <div class="cyber-panel p-1 rounded-xl border border-cyber-cyan/30 w-28 h-28 md:w-36 md:h-36 relative overflow-hidden hidden sm:block">
-                <div class="absolute top-1 left-1.5 text-[8px] text-cyber-cyan font-bold tracking-wider z-10">RADAR</div>
-                <canvas id="minimapCanvas" class="w-full h-full rounded"></canvas>
-            </div>
+            <button class="btn-play" id="play-btn">PLAY NOW</button>
 
-            <!-- Leaderboard -->
-            <div class="cyber-panel px-4 py-3 rounded-xl border border-cyber-cyan/30 w-56 md:w-64">
-                <div class="text-xs text-cyber-cyan font-bold tracking-widest uppercase mb-2 flex items-center justify-between">
-                    <span>GRID LEADERS</span>
-                    <i class="fa-solid fa-crown text-cyber-yellow text-xs"></i>
-                </div>
-                <div id="leaderboardList" class="space-y-1 text-xs">
-                    <!-- Leaderboard injected dynamically -->
-                </div>
-            </div>
-        </div>
-
-        <!-- Center Event Notifications -->
-        <div id="eventNotifications" class="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-col items-center pointer-events-none space-y-1.5 z-30"></div>
-
-        <!-- Bottom Left: Killfeed -->
-        <div id="killfeedContainer" class="flex flex-col space-y-1.5 max-w-xs pointer-events-none">
-            <!-- Killfeed items injected dynamically -->
-        </div>
-
-        <!-- Bottom Controls / Status Bar -->
-        <div class="flex justify-between items-end">
-            <div class="text-xs text-gray-400 font-mono hidden md:block">
-                Powerline Engine v2.5 | Unblocked & Online
-            </div>
-            <div class="cyber-panel px-3 py-1.5 rounded-lg text-[11px] text-gray-300 flex items-center space-x-2">
-                <span class="text-cyber-lime"><i class="fa-solid fa-keyboard mr-1"></i> WASD / Arrow Keys</span>
-                <span class="text-gray-500">|</span>
-                <span class="text-cyber-yellow"><i class="fa-solid fa-bolt mr-1"></i> Ride Parallel to Boost</span>
+            <div class="status-text">
+                <div class="status-dot" id="status-dot"></div>
+                <span id="status-msg">Ready to connect to global room...</span>
             </div>
         </div>
     </div>
 
-    <!-- Main Entry Modal (Unboxed floating layout) -->
-    <div id="menuModal" class="absolute inset-0 bg-black/75 backdrop-blur-md flex flex-col items-center justify-center z-50 p-6">
-        <div class="flex flex-col items-center w-full max-w-sm sm:max-w-md text-center space-y-6">
-            
-            <!-- Top: Logo Image -->
-            <div class="w-full flex justify-center mb-2">
-                <img id="game-logo" src="logo.png" alt="Powerline.io Logo" class="max-w-[280px] sm:max-w-[340px] h-auto drop-shadow-[0_0_20px_rgba(204,255,0,0.5)] transition-transform duration-300 hover:scale-105" onerror="this.onerror=null; this.src='https://placehold.co/360x100/040d1a/ccff00?text=POWERLINE.IO&font=ubuntu';">
-            </div>
-
-            <!-- Middle: Player Name Input -->
-            <div class="w-full text-left">
-                <label class="block text-xs text-cyber-lime font-bold mb-1.5 uppercase tracking-widest text-center">Enter Nickname</label>
-                <input type="text" id="playerNameInput" value="PowerRider" maxlength="14" class="w-full bg-cyber-dark/80 border-2 border-cyber-lime/60 rounded-xl px-5 py-3.5 text-center text-white text-lg font-bold focus:outline-none focus:border-cyber-lime focus:ring-2 focus:ring-cyber-lime/50 shadow-inner">
-            </div>
-
-            <!-- Action: Play Button -->
-            <button id="playBtn" class="w-full bg-gradient-to-r from-lime-400 to-green-500 hover:from-lime-300 hover:to-green-400 text-cyber-dark font-black py-4 px-8 rounded-xl transition transform hover:-translate-y-1 text-xl tracking-wider uppercase flex items-center justify-center gap-3 cursor-pointer btn-glow">
-                <i class="fa-solid fa-play text-xl"></i>
-                <span id="playBtnText">PLAY NOW</span>
-            </button>
-
-            <!-- Below Play Button: Connection Status & Server Info -->
-            <div id="connectionStatus" class="flex flex-col items-center space-y-2 text-xs text-gray-300 font-medium pt-2">
-                <div class="flex items-center gap-2">
-                    <i class="fa-solid fa-wifi text-cyber-lime animate-pulse"></i>
-                    <span id="statusText" class="tracking-wide">Ready to connect to P2P . . .</span>
+    <!-- Death Modal -->
+    <div id="death-screen">
+        <div class="death-card">
+            <div class="death-title">CIRCUIT SHORTED</div>
+            <div class="stat-grid">
+                <div class="stat-box">
+                    <div class="stat-value" id="final-score">0</div>
+                    <div class="stat-label">Final Score</div>
                 </div>
-                <div class="text-[11px] text-gray-500 font-mono">
-                    Dynamic Auto-Server Host Migration Active
+                <div class="stat-box">
+                    <div class="stat-value" id="final-length">0</div>
+                    <div class="stat-label">Peak Length</div>
                 </div>
             </div>
-
+            <button class="btn-play" id="respawn-btn">PLAY AGAIN</button>
         </div>
     </div>
 
-    <!-- Game Over Modal -->
-    <div id="gameOverModal" class="absolute inset-0 bg-black/85 backdrop-blur-md hidden flex items-center justify-center z-50 p-4">
-        <div class="cyber-panel p-8 rounded-2xl border-2 border-cyber-red max-w-md w-full text-center shadow-2xl">
-            <div class="text-cyber-red font-black text-xs tracking-widest uppercase mb-1">CIRCUIT SHORTED</div>
-            <h2 class="text-4xl font-black text-white mb-6 tracking-wider">YOU DIED</h2>
-
-            <div class="grid grid-cols-2 gap-4 mb-6 bg-cyber-dark p-4 rounded-xl border border-gray-800">
-                <div>
-                    <div class="text-xs text-gray-400 font-bold">FINAL SCORE</div>
-                    <div id="finalScore" class="text-2xl font-black text-white">0</div>
-                </div>
-                <div>
-                    <div class="text-xs text-gray-400 font-bold">PEAK LENGTH</div>
-                    <div id="finalLength" class="text-2xl font-black text-cyber-lime">0</div>
-                </div>
-            </div>
-
-            <button id="restartBtn" class="w-full bg-gradient-to-r from-cyber-lime to-green-500 hover:from-lime-300 hover:to-green-400 text-cyber-dark font-black py-4 px-6 rounded-xl shadow-lg transition transform hover:-translate-y-0.5 text-lg uppercase tracking-wider cursor-pointer">
-                PLAY AGAIN
-            </button>
+    <!-- Gameplay HUD -->
+    <div class="overlay">
+        <div id="minimap-container">
+            <canvas id="minimap" width="140" height="140"></canvas>
         </div>
+
+        <div id="leaderboard">
+            <h3>Leaderboard</h3>
+            <div id="lb-list"></div>
+        </div>
+
+        <div id="killfeed"></div>
     </div>
 
     <script>
-        // Game Constants & Tuning
-        const WORLD_SIZE = 3200;
-        const BASE_SPEED = 145;      // Smooth classic Powerline speed
-        const BOOST_SPEED = 240;     // Speed when electric boosted
-        const LINE_WIDTH = 8;        // Line width matching Image 1
-        const HEAD_RADIUS = 7;       // Circular head radius matching Image 1
-        const PELLET_COUNT = 380;    // Active food bits on map
-        const TARGET_ROOM_CAPACITY = 10;
-        const LOBBY_ID_PREFIX = 'powerline-io-authentic-v1-';
+        // --- GLOBALS & CONFIGURATION ---
+        const WORLD_SIZE = 4000;
+        const BASE_SPEED = 3.8;
+        const BOOST_SPEED = 7.5;
+        const LINE_WIDTH = 10;
+        const GRID_SPACING = 40;
+        const MIN_SAFE_DIST = 300;
+        const BOT_TARGET_COUNT = 8;
 
-        // Strict 90-degree movement vectors
-        const DIR = {
-            UP: { x: 0, y: -1 },
-            DOWN: { x: 0, y: 1 },
-            LEFT: { x: -1, y: 0 },
-            RIGHT: { x: 1, y: 0 }
-        };
-
-        // Synthesized Web Audio Sound Engine
-        class SoundEngine {
-            constructor() {
-                this.ctx = null;
-            }
-            init() {
-                if (!this.ctx) {
-                    this.ctx = new (window.AudioContext || window.webkitAudioContext)();
-                }
-            }
-            playTone(freq, type, duration, vol = 0.1) {
-                if (!this.ctx) return;
-                try {
-                    const osc = this.ctx.createOscillator();
-                    const gain = this.ctx.createGain();
-                    osc.type = type;
-                    osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
-                    gain.gain.setValueAtTime(vol, this.ctx.currentTime);
-                    gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + duration);
-                    osc.connect(gain);
-                    gain.connect(this.ctx.destination);
-                    osc.start();
-                    osc.stop(this.ctx.currentTime + duration);
-                } catch(e) {}
-            }
-            turn() { this.playTone(380, 'sine', 0.04, 0.02); }
-            boost() { this.playTone(620, 'sawtooth', 0.08, 0.03); }
-            eat() { this.playTone(520 + Math.random() * 200, 'sine', 0.06, 0.04); }
-            crash() { this.playTone(90, 'sawtooth', 0.4, 0.2); }
-            kill() { this.playTone(750, 'square', 0.2, 0.1); }
-        }
-
-        const sound = new SoundEngine();
-
-        // Canvas Setup
-        const canvas = document.getElementById('gameCanvas');
+        const canvas = document.getElementById('game-canvas');
         const ctx = canvas.getContext('2d');
-        const minimapCanvas = document.getElementById('minimapCanvas');
-        const minimapCtx = minimapCanvas.getContext('2d');
+        const minimapCanvas = document.getElementById('minimap');
+        const mctx = minimapCanvas.getContext('2d');
 
-        function resizeCanvas() {
-            canvas.width = window.innerWidth;
-            canvas.height = window.innerHeight;
-            minimapCanvas.width = 140;
-            minimapCanvas.height = 140;
-        }
-        window.addEventListener('resize', resizeCanvas);
-        resizeCanvas();
+        let camera = { x: WORLD_SIZE / 2, y: WORLD_SIZE / 2 };
+        let myId = null;
+        let isPlaying = false;
+        let myPlayer = null;
 
-        // Camera smoothly tracking player
-        const camera = {
-            x: WORLD_SIZE / 2,
-            y: WORLD_SIZE / 2,
-            update(targetX, targetY) {
-                this.x += (targetX - this.x) * 0.12;
-                this.y += (targetY - this.y) * 0.12;
-            }
-        };
+        // Shared Game State
+        let players = {}; // id -> player object
+        let foodPellets = []; // array of {x, y, color, size, val}
+        let sparkParticles = [];
 
-        class Pellet {
-            constructor(x, y, value = 1) {
-                this.x = x;
-                this.y = y;
-                this.value = value;
-                this.radius = 4 + Math.min(value * 0.5, 6);
-                
-                // Colors matching Image 1 (Red, Orange, Yellow glowing energy bits)
-                const palette = ['#ff0044', '#ff4400', '#ffaa00', '#fcee0a', '#ccff00'];
-                this.color = palette[Math.floor(Math.random() * palette.length)];
-                this.pulse = Math.random() * Math.PI * 2;
-            }
+        // PeerJS Networking
+        let peer = null;
+        let connections = {};
+        let isHost = false;
+        let hostId = 'powerline-global-room-2026';
 
-            draw(context) {
-                this.pulse += 0.05;
-                const pSize = this.radius + Math.sin(this.pulse) * 0.8;
+        // Keyboard Controls
+        const keys = {};
 
-                context.save();
-                context.shadowColor = this.color;
-                context.shadowBlur = 10;
-                context.fillStyle = this.color;
-
-                // Draw rounded square diamond pellet shape matching Image 1
-                context.beginPath();
-                context.roundRect(this.x - pSize / 2, this.y - pSize / 2, pSize, pSize, 2);
-                context.fill();
-
-                // Core highlight
-                context.fillStyle = '#ffffff';
-                context.fillRect(this.x - 1, this.y - 1, 2, 2);
-                context.restore();
-            }
-        }
-
-        class ElectricSpark {
-            constructor(x, y, color) {
-                this.x = x + (Math.random() - 0.5) * 12;
-                this.y = y + (Math.random() - 0.5) * 12;
-                this.color = color;
-                this.vx = (Math.random() - 0.5) * 4;
-                this.vy = (Math.random() - 0.5) * 4;
-                this.life = 1.0;
-                this.size = 2 + Math.random() * 3;
-            }
-            update() {
-                this.x += this.vx;
-                this.y += this.vy;
-                this.life -= 0.08;
-            }
-            draw(context) {
-                if (this.life <= 0) return;
-                context.save();
-                context.globalAlpha = Math.max(0, this.life);
-                context.fillStyle = this.color;
-                context.shadowColor = this.color;
-                context.shadowBlur = 6;
-                context.fillRect(this.x, this.y, this.size, this.size);
-                context.restore();
-            }
-        }
-
-        class Rider {
-            constructor(id, name, x, y, dir, color, isBot = false) {
+        // --- PLAYER CLASS ---
+        class Player {
+            constructor(id, name, x, y, isBot = false) {
                 this.id = id;
-                this.name = name;
-                this.x = x;
-                this.y = y;
-                this.dir = dir;
-                this.nextDir = dir;
-                this.color = color; // e.g. '#ccff00'
+                this.name = name || 'Rider';
                 this.isBot = isBot;
-                this.alive = true;
-                this.score = 0;
-                this.targetLength = 40; // Length in canvas pixels
-
-                // Path turns points for continuous line rendering
-                this.path = [
-                    { x: this.x, y: this.y }
-                ];
-
+                this.dir = { x: 1, y: 0 }; // Current direction
+                this.nextDir = { x: 1, y: 0 };
+                this.speed = BASE_SPEED;
                 this.isBoosting = false;
-                this.sparks = [];
-                this.lastDraftTime = 0;
-                this.lastCloseCallTime = 0;
+                this.score = 0;
+                this.maxLength = 40;
+                this.alive = true;
+                this.color = isBot ? '#ff0055' : '#39ff14';
+
+                // Path points: Head is path[0]
+                this.path = [];
+                const initialLength = 40;
+                for (let i = 0; i < initialLength; i++) {
+                    this.path.push({ x: x - i * 2, y: y });
+                }
+
                 this.botTimer = 0;
+                this.botTarget = null;
             }
 
-            setDirection(newDir) {
-                // Prevent 180-degree instant reversal
-                if (newDir.x === -this.dir.x && newDir.y === -this.dir.y) return;
-                this.nextDir = newDir;
+            get head() {
+                return this.path[0];
             }
 
-            update(dt) {
+            update() {
                 if (!this.alive) return;
 
-                // Check proximity parallel riding for boost
-                this.checkDraftingAndBoost();
-
-                const speed = this.isBoosting ? BOOST_SPEED : BASE_SPEED;
-                const moveDist = speed * dt;
-
-                // Turn logic
-                if (this.nextDir !== this.dir) {
-                    this.dir = this.nextDir;
-                    this.path.push({ x: this.x, y: this.y });
-                    if (this === player) sound.turn();
+                // Handle Direction Turn (Prevent 180-degree self reversal)
+                if ((this.nextDir.x !== 0 && this.nextDir.x !== -this.dir.x) ||
+                    (this.nextDir.y !== 0 && this.nextDir.y !== -this.dir.y)) {
+                    this.dir = { ...this.nextDir };
                 }
 
-                // Advance head position
-                this.x += this.dir.x * moveDist;
-                this.y += this.dir.y * moveDist;
-
-                // Update tip of path
-                if (this.path.length > 0) {
-                    this.path[this.path.length - 1] = { x: this.x, y: this.y };
+                // AI Logic for Bots
+                if (this.isBot) {
+                    this.updateBot();
                 }
 
-                // Check Wall Collision
-                if (this.x < 15 || this.x > WORLD_SIZE - 15 || this.y < 15 || this.y > WORLD_SIZE - 15) {
-                    this.die('wall');
+                // Boost check relative to other players' line segments
+                this.checkBoosting();
+
+                // Move Head
+                const newHead = {
+                    x: this.head.x + this.dir.x * this.speed,
+                    y: this.head.y + this.dir.y * this.speed
+                };
+
+                this.path.unshift(newHead);
+
+                // Trim tail based on current score/length
+                const targetPathLength = Math.floor(40 + (this.score / 2));
+                while (this.path.length > targetPathLength) {
+                    this.path.pop();
+                }
+
+                // Check Wall Collisions
+                if (newHead.x < 0 || newHead.x > WORLD_SIZE || newHead.y < 0 || newHead.y > WORLD_SIZE) {
+                    killPlayer(this, null, 'wall');
                     return;
                 }
 
-                // Check Eating Pellets
-                this.checkPelletCollisions();
+                // Collect Food Pellets
+                for (let i = foodPellets.length - 1; i >= 0; i--) {
+                    const p = foodPellets[i];
+                    const dist = Math.hypot(newHead.x - p.x, newHead.y - p.y);
+                    if (dist < LINE_WIDTH + p.size) {
+                        this.score += p.val;
+                        foodPellets.splice(i, 1);
+                        if (isHost && foodPellets.length < 200) {
+                            spawnPellet();
+                        }
+                    }
+                }
 
-                // Check Body Collisions
+                // Check Self & Enemy Body Collisions
                 this.checkCollisions();
-
-                // Trim tail path
-                this.trimPath();
-
-                // Update sparks
-                for (let i = this.sparks.length - 1; i >= 0; i--) {
-                    this.sparks[i].update();
-                    if (this.sparks[i].life <= 0) this.sparks.splice(i, 1);
-                }
-
-                // Spawn electricity sparks along sides when boosting
-                if (this.isBoosting) {
-                    this.sparks.push(new ElectricSpark(this.x, this.y, '#ffffff'));
-                    this.sparks.push(new ElectricSpark(this.x - this.dir.x * 10, this.y - this.dir.y * 10, this.color));
-                }
-
-                // Bot AI Logic
-                if (this.isBot && isHost) {
-                    this.updateBotAI(dt);
-                }
             }
 
-            checkDraftingAndBoost() {
-                this.isBoosting = false;
-                let closeToLine = false;
+            checkBoosting() {
+                let boosting = false;
+                const boostDistThreshold = 35;
 
-                for (let other of players) {
-                    if (!other.alive) continue;
+                for (let pid in players) {
+                    const other = players[pid];
+                    if (!other.alive || other.id === this.id) continue;
 
-                    // Check distance to other player line segments
-                    for (let i = 0; i < other.path.length - 1; i++) {
-                        const p1 = other.path[i];
-                        const p2 = other.path[i + 1];
-
-                        const dist = distToSegment({ x: this.x, y: this.y }, p1, p2);
-
-                        // Parallel riding proximity zone (12px to 42px)
-                        if (dist > 10 && dist < 42) {
-                            closeToLine = true;
+                    // Sample line segments of other player
+                    for (let i = 0; i < other.path.length - 5; i += 4) {
+                        const pt = other.path[i];
+                        const dist = Math.hypot(this.head.x - pt.x, this.head.y - pt.y);
+                        if (dist < boostDistThreshold) {
+                            boosting = true;
+                            // Add spark particles
+                            if (Math.random() < 0.4) {
+                                sparkParticles.push({
+                                    x: this.head.x + (Math.random() - 0.5) * 10,
+                                    y: this.head.y + (Math.random() - 0.5) * 10,
+                                    vx: (Math.random() - 0.5) * 4,
+                                    vy: (Math.random() - 0.5) * 4,
+                                    life: 1.0,
+                                    color: '#00f0ff'
+                                });
+                            }
                             break;
                         }
                     }
-                    if (closeToLine) break;
+                    if (boosting) break;
                 }
 
-                if (closeToLine) {
-                    this.isBoosting = true;
-                    if (Date.now() - this.lastDraftTime > 400) {
-                        this.targetLength += 0.6;
-                        this.score += 4;
-                        if (this === player) {
-                            addFloatingText(this.x, this.y, '+4 BOOST', '#fcee0a');
-                            sound.boost();
-                        }
-                        this.lastDraftTime = Date.now();
-                    }
-                }
-            }
-
-            checkPelletCollisions() {
-                for (let i = pellets.length - 1; i >= 0; i--) {
-                    const pel = pellets[i];
-                    const dist = Math.hypot(this.x - pel.x, this.y - pel.y);
-
-                    if (dist < HEAD_RADIUS + pel.radius + 2) {
-                        this.targetLength += pel.value * 2.5;
-                        this.score += pel.value * 10;
-                        if (this === player) sound.eat();
-
-                        pellets.splice(i, 1);
-
-                        // Respawn new random pellet if low
-                        if (pellets.length < PELLET_COUNT) {
-                            spawnRandomPellet();
-                        }
-                    }
-                }
+                this.isBoosting = boosting;
+                this.speed = boosting ? BOOST_SPEED : BASE_SPEED;
+                if (boosting) this.score += 0.1; // Passive drafting score gain
             }
 
             checkCollisions() {
-                const head = { x: this.x, y: this.y };
+                const head = this.head;
 
-                for (let other of players) {
+                for (let pid in players) {
+                    const other = players[pid];
                     if (!other.alive) continue;
 
-                    const segmentCount = other.path.length - 1;
-                    for (let i = 0; i < segmentCount; i++) {
-                        // Skip immediate head segment of self to allow turns without self-cut
-                        if (other === this && i >= segmentCount - 1) continue;
+                    // Skip recent head points on self to allow turns
+                    const startIndex = (other.id === this.id) ? 25 : 0;
 
+                    for (let i = startIndex; i < other.path.length - 1; i += 2) {
                         const p1 = other.path[i];
-                        const p2 = other.path[i + 1];
-
-                        const dist = distToSegment(head, p1, p2);
-
-                        if (dist < 7) {
-                            if (other === this) {
-                                this.die('self');
-                            } else {
-                                other.score += Math.floor(this.score * 0.5) + 250;
-                                other.targetLength += Math.floor(this.targetLength * 0.25);
-
-                                if (other === player) {
-                                    addFloatingText(other.x, other.y, `+${Math.floor(this.score * 0.5) + 250} CUT KILL!`, '#00f3ff');
-                                    sound.kill();
-                                }
-                                this.die('player', other);
-                            }
+                        const dist = Math.hypot(head.x - p1.x, head.y - p1.y);
+                        if (dist < LINE_WIDTH * 0.85) {
+                            killPlayer(this, other, other.id === this.id ? 'self' : 'player');
                             return;
                         }
-
-                        // Close Call Detection
-                        if (dist >= 7 && dist < 20 && (Date.now() - this.lastCloseCallTime > 2500)) {
-                            if (this === player) {
-                                this.score += 25;
-                                addFloatingText(this.x, this.y, '+25 CLOSE CALL!', '#ff0044');
-                            }
-                            this.lastCloseCallTime = Date.now();
-                        }
                     }
                 }
             }
 
-            trimPath() {
-                let currentTotalLen = 0;
-                for (let i = this.path.length - 1; i > 0; i--) {
-                    const p1 = this.path[i];
-                    const p2 = this.path[i - 1];
-                    currentTotalLen += Math.hypot(p1.x - p2.x, p1.y - p2.y);
-                }
+            updateBot() {
+                this.botTimer++;
 
-                while (currentTotalLen > this.targetLength * 10 && this.path.length > 2) {
-                    const p0 = this.path[0];
-                    const p1 = this.path[1];
-                    const segLen = Math.hypot(p1.x - p0.x, p1.y - p0.y);
-                    const excess = currentTotalLen - (this.targetLength * 10);
+                // Turn logic with safety raycasting
+                const aheadX = this.head.x + this.dir.x * 60;
+                const aheadY = this.head.y + this.dir.y * 60;
 
-                    if (segLen <= excess) {
-                        currentTotalLen -= segLen;
-                        this.path.shift();
-                    } else {
-                        const ratio = (segLen - excess) / segLen;
-                        this.path[0] = {
-                            x: p1.x + (p0.x - p1.x) * ratio,
-                            y: p1.y + (p0.y - p1.y) * ratio
-                        };
-                        break;
-                    }
-                }
-            }
+                let obstacleAhead = aheadX < 50 || aheadX > WORLD_SIZE - 50 || aheadY < 50 || aheadY > WORLD_SIZE - 50;
 
-            updateBotAI(dt) {
-                this.botTimer += dt;
-
-                // Scan ahead for obstacles
-                const aheadX = this.x + this.dir.x * 45;
-                const aheadY = this.y + this.dir.y * 45;
-
-                let obstacle = (aheadX < 30 || aheadX > WORLD_SIZE - 30 || aheadY < 30 || aheadY > WORLD_SIZE - 30);
-
-                if (!obstacle) {
-                    for (let other of players) {
+                if (!obstacleAhead) {
+                    for (let pid in players) {
+                        const other = players[pid];
                         if (!other.alive) continue;
-                        for (let i = 0; i < other.path.length - 1; i++) {
-                            const p1 = other.path[i];
-                            const p2 = other.path[i + 1];
-                            if (distToSegment({ x: aheadX, y: aheadY }, p1, p2) < 22) {
-                                obstacle = true;
+                        const start = (other.id === this.id) ? 20 : 0;
+                        for (let i = start; i < other.path.length; i += 5) {
+                            if (Math.hypot(aheadX - other.path[i].x, aheadY - other.path[i].y) < 40) {
+                                obstacleAhead = true;
                                 break;
                             }
                         }
-                        if (obstacle) break;
+                        if (obstacleAhead) break;
                     }
                 }
 
-                if (obstacle || this.botTimer > 3.5) {
-                    const possibleDirs = this.dir.x !== 0 
-                        ? [DIR.UP, DIR.DOWN] 
-                        : [DIR.LEFT, DIR.RIGHT];
-
-                    const choice = possibleDirs[Math.floor(Math.random() * possibleDirs.length)];
-                    this.setDirection(choice);
+                if (obstacleAhead || this.botTimer > 120) {
                     this.botTimer = 0;
+                    // Pick valid 90-degree direction
+                    const possibleDirs = this.dir.x !== 0 ? [{ x: 0, y: 1 }, { x: 0, y: -1 }] : [{ x: 1, y: 0 }, { x: -1, y: 0 }];
+                    this.nextDir = possibleDirs[Math.floor(Math.random() * possibleDirs.length)];
                 }
             }
+        }
 
-            die(reason, killer = null) {
-                if (!this.alive) return;
-                this.alive = false;
+        // --- SAFE SPAWN ROUTINE ---
+        function findSafeSpawn() {
+            let attempt = 0;
+            while (attempt < 100) {
+                const x = 300 + Math.random() * (WORLD_SIZE - 600);
+                const y = 300 + Math.random() * (WORLD_SIZE - 600);
 
-                if (this === player) sound.crash();
-
-                // Drop edible energy bits along the path matching Image 1
-                for (let i = 0; i < this.path.length - 1; i++) {
-                    const p1 = this.path[i];
-                    const p2 = this.path[i + 1];
-                    const segLen = Math.hypot(p2.x - p1.x, p2.y - p1.y);
-                    const steps = Math.floor(segLen / 12);
-
-                    for (let s = 0; s < steps; s++) {
-                        const ratio = s / steps;
-                        const px = p1.x + (p2.x - p1.x) * ratio + (Math.random() - 0.5) * 20;
-                        const py = p1.y + (p2.y - p1.y) * ratio + (Math.random() - 0.5) * 20;
-                        pellets.push(new Pellet(px, py, Math.floor(1 + Math.random() * 3)));
+                let safe = true;
+                for (let pid in players) {
+                    const p = players[pid];
+                    if (p.alive && Math.hypot(p.head.x - x, p.head.y - y) < MIN_SAFE_DIST) {
+                        safe = false;
+                        break;
                     }
                 }
+                if (safe) return { x, y };
+                attempt++;
+            }
+            return { x: WORLD_SIZE / 2, y: WORLD_SIZE / 2 };
+        }
 
-                // Announce in killfeed
-                if (reason === 'wall') {
-                    pushKillfeed(`${this.name} 🧱 Wall`, 'wall');
-                } else if (reason === 'self' || killer === this) {
-                    pushKillfeed(`${this.name} ⚡ ${this.name}`, 'self');
-                } else if (killer) {
-                    pushKillfeed(`${killer.name} ⚡ ${this.name}`, 'kill');
-                }
+        // --- KILL PLAYER & FOOD DROP ---
+        function killPlayer(victim, killer, cause) {
+            if (!victim.alive) return;
+            victim.alive = false;
 
-                if (this === player) {
-                    triggerGameOver();
-                } else if (isHost) {
-                    setTimeout(() => {
-                        if (!gameActive || !this.isBot) return;
-                        respawnBot(this);
-                    }, 2200);
-                }
+            // Explode line into food bits (Image 1 visual match)
+            for (let i = 0; i < victim.path.length; i += 3) {
+                const pt = victim.path[i];
+                foodPellets.push({
+                    x: pt.x + (Math.random() - 0.5) * 20,
+                    y: pt.y + (Math.random() - 0.5) * 20,
+                    color: i % 2 === 0 ? '#ff3300' : '#ff9900',
+                    size: 4 + Math.random() * 4,
+                    val: 3
+                });
             }
 
-            draw(context, isLeader = false) {
-                if (!this.alive || this.path.length < 2) return;
+            // Create killfeed notice
+            let msg = '';
+            if (cause === 'wall') {
+                msg = `<b>${victim.name}</b> 🧱 Wall`;
+            } else if (cause === 'self') {
+                msg = `<b>${victim.name}</b> ⚡ <b>${victim.name}</b>`;
+            } else if (killer) {
+                msg = `<b>${killer.name}</b> ⚡ <b>${victim.name}</b>`;
+                killer.score += 50; // Reward killer
+            }
+            addKillfeed(msg);
 
-                context.save();
+            // Handle Local Player Death
+            if (victim.id === myId) {
+                document.getElementById('final-score').innerText = Math.floor(victim.score);
+                document.getElementById('final-length').innerText = victim.path.length;
+                document.getElementById('death-screen').style.display = 'flex';
+            }
 
-                // Render main line trail matching Image 1
-                context.strokeStyle = this.color;
-                context.shadowColor = this.color;
-                context.shadowBlur = this.isBoosting ? 18 : 10;
-                context.lineWidth = LINE_WIDTH;
-                context.lineCap = 'round';
-                context.lineJoin = 'miter';
-
-                context.beginPath();
-                context.moveTo(this.path[0].x, this.path[0].y);
-                for (let i = 1; i < this.path.length; i++) {
-                    context.lineTo(this.path[i].x, this.path[i].y);
-                }
-                context.stroke();
-
-                // Draw Electric Sparks along line when boosting
-                for (let sp of this.sparks) {
-                    sp.draw(context);
-                }
-
-                // Draw Glowing Circular Head Tip matching Image 1
-                context.fillStyle = '#ffffff';
-                context.shadowColor = this.color;
-                context.shadowBlur = 15;
-
-                context.beginPath();
-                context.arc(this.x, this.y, HEAD_RADIUS, 0, Math.PI * 2);
-                context.fill();
-
-                // Outer glow ring on head
-                context.strokeStyle = this.color;
-                context.lineWidth = 3;
-                context.beginPath();
-                context.arc(this.x, this.y, HEAD_RADIUS + 2, 0, Math.PI * 2);
-                context.stroke();
-
-                // Draw Crown Icon above Leader
-                if (isLeader) {
-                    context.fillStyle = '#fcee0a';
-                    context.shadowColor = '#fcee0a';
-                    context.shadowBlur = 12;
-                    context.font = '900 16px "Font Awesome 6 Free"';
-                    context.textAlign = 'center';
-                    context.fillText('\u00f521', this.x, this.y - 18);
-                }
-
-                // Draw Player Name Tag Centered below Head
-                context.font = 'bold 12px Ubuntu, sans-serif';
-                context.fillStyle = 'rgba(240, 240, 240, 0.85)';
-                context.shadowColor = '#000000';
-                context.shadowBlur = 6;
-                context.textAlign = 'center';
-                context.fillText(this.name, this.x, this.y + 24);
-
-                context.restore();
+            // Host Bot Management
+            if (isHost && victim.isBot) {
+                delete players[victim.id];
+                setTimeout(() => {
+                    if (Object.keys(players).length < BOT_TARGET_COUNT) {
+                        spawnBot();
+                    }
+                }, 3000);
             }
         }
 
-        function distToSegment(p, v, w) {
-            const l2 = (v.x - w.x) ** 2 + (v.y - w.y) ** 2;
-            if (l2 === 0) return Math.hypot(p.x - v.x, p.y - v.y);
-            let t = ((p.x - v.x) * (w.x - v.x) + (p.y - v.y) * (w.y - v.y)) / l2;
-            t = Math.max(0, Math.min(1, t));
-            return Math.hypot(p.x - (v.x + t * (w.x - v.x)), p.y - (v.y + t * (w.y - v.y)));
-        }
-
-        let players = [];
-        let pellets = [];
-        let floatingTexts = [];
-        let player = null;
-        let gameActive = false;
-
-        function spawnRandomPellet() {
-            const px = 30 + Math.random() * (WORLD_SIZE - 60);
-            const py = 30 + Math.random() * (WORLD_SIZE - 60);
-            pellets.push(new Pellet(px, py, 1));
-        }
-
-        function initPellets() {
-            pellets = [];
-            for (let i = 0; i < PELLET_COUNT; i++) {
-                spawnRandomPellet();
-            }
-        }
-
-        function addFloatingText(x, y, text, color) {
-            floatingTexts.push({ x, y, text, color, life: 1.0, vy: -1.2 });
-        }
-
-        function pushKillfeed(text, type) {
-            const container = document.getElementById('killfeedContainer');
+        function addKillfeed(htmlContent) {
+            const kf = document.getElementById('killfeed');
             const item = document.createElement('div');
-            item.className = 'cyber-panel px-3 py-1.5 rounded-lg text-xs font-bold text-white border border-cyber-lime/30 flex items-center space-x-2 animate-fade-in';
-            
-            let icon = '<i class="fa-solid fa-bolt text-cyber-yellow"></i>';
-            if (type === 'wall') icon = '<i class="fa-solid fa-cube text-gray-400"></i>';
-            if (type === 'kill') icon = '<i class="fa-solid fa-scissors text-cyber-red"></i>';
+            item.className = 'kf-item';
+            item.innerHTML = htmlContent;
+            kf.appendChild(item);
+            setTimeout(() => item.remove(), 5000);
+        }
 
-            item.innerHTML = `${icon} <span>${text}</span>`;
-            container.appendChild(item);
+        function spawnBot() {
+            const botId = 'bot_' + Math.random().toString(36).substr(2, 6);
+            const botNames = ['CyberNeon', 'GridGhost', 'NullPointer', 'ByteSlayer', 'LaserTail', 'VoltRunner'];
+            const name = botNames[Math.floor(Math.random() * botNames.length)];
+            const pos = findSafeSpawn();
+            players[botId] = new Player(botId, name, pos.x, pos.y, true);
+        }
+
+        function spawnPellet() {
+            foodPellets.push({
+                x: Math.random() * WORLD_SIZE,
+                y: Math.random() * WORLD_SIZE,
+                color: Math.random() < 0.5 ? '#ff9900' : '#ffff00',
+                size: 3 + Math.random() * 3,
+                val: 1
+            });
+        }
+
+        // --- NETWORK & PEERJS HOST MIGRATION ---
+        function initNetwork() {
+            peer = new Peer();
+
+            peer.on('open', (id) => {
+                myId = id;
+                document.getElementById('status-msg').innerText = 'Connected. Joining Room...';
+                tryConnectToHost();
+            });
+
+            peer.on('error', () => {
+                // Host does not exist -> Become Host
+                becomeHost();
+            });
+        }
+
+        function tryConnectToHost() {
+            const conn = peer.connect(hostId);
+            conn.on('open', () => {
+                isHost = false;
+                document.getElementById('status-msg').innerText = 'Connected to Host!';
+            });
+
+            conn.on('data', (data) => {
+                if (data.type === 'sync') {
+                    // Sync full world state from Host
+                    foodPellets = data.pellets;
+                    for (let pid in data.players) {
+                        if (pid !== myId) {
+                            players[pid] = Object.assign(new Player(), data.players[pid]);
+                        }
+                    }
+                }
+            });
 
             setTimeout(() => {
-                item.style.opacity = '0';
-                item.style.transition = 'opacity 0.4s ease';
-                setTimeout(() => item.remove(), 400);
-            }, 3500);
-        }
-
-        let myPeer = null;
-        let myPeerId = null;
-        let isHost = false;
-        let hostConnection = null;
-        let clientConnections = [];
-
-        function updateStatus(msg) {
-            document.getElementById('statusText').innerText = msg;
-        }
-
-        function updateRoleBadge() {
-            const badge = document.getElementById('roleBadge');
-            if (isHost) {
-                badge.innerText = `HOST (${players.filter(p => !p.isBot).length} PLAYERS)`;
-                badge.className = 'text-[9px] px-1.5 py-0.5 rounded bg-cyber-lime/20 border border-cyber-lime/40 text-cyber-lime';
-            } else {
-                badge.innerText = 'CLIENT PEER';
-                badge.className = 'text-[9px] px-1.5 py-0.5 rounded bg-cyber-cyan/20 border border-cyber-cyan/40 text-cyber-cyan';
-            }
-        }
-
-        const botNames = ['Mighty Commander', 'Surly Bigfoot', 'AlphaRider', 'NeonThunder', 'GridPhantom', 'VoltVect', 'HyperPulse'];
-        const botColors = ['#ccff00', '#ff0044', '#ffaa00', '#00f3ff', '#a855f7', '#00ff66'];
-
-        function respawnBot(botRider) {
-            const gx = 80 + Math.random() * (WORLD_SIZE - 160);
-            const gy = 80 + Math.random() * (WORLD_SIZE - 160);
-            botRider.x = gx;
-            botRider.y = gy;
-            botRider.dir = [DIR.UP, DIR.DOWN, DIR.LEFT, DIR.RIGHT][Math.floor(Math.random() * 4)];
-            botRider.nextDir = botRider.dir;
-            botRider.path = [{ x: gx, y: gy }];
-            botRider.targetLength = 40;
-            botRider.score = 0;
-            botRider.alive = true;
-        }
-
-        function balanceBots() {
-            if (!isHost) return;
-
-            const humanCount = players.filter(p => !p.isBot).length;
-            const currentBotCount = players.filter(p => p.isBot).length;
-            const desiredBotCount = Math.max(2, TARGET_ROOM_CAPACITY - humanCount);
-
-            if (currentBotCount < desiredBotCount) {
-                for (let i = currentBotCount; i < desiredBotCount; i++) {
-                    const gx = 80 + Math.random() * (WORLD_SIZE - 160);
-                    const gy = 80 + Math.random() * (WORLD_SIZE - 160);
-                    const dir = [DIR.UP, DIR.DOWN, DIR.LEFT, DIR.RIGHT][Math.floor(Math.random() * 4)];
-                    const name = botNames[Math.floor(Math.random() * botNames.length)];
-                    const color = botColors[Math.floor(Math.random() * botColors.length)];
-                    const botId = `bot_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
-
-                    players.push(new Rider(botId, name, gx, gy, dir, color, true));
+                if (!conn.open && !isHost) {
+                    becomeHost();
                 }
-            } else if (currentBotCount > desiredBotCount) {
-                let removed = 0;
-                const toRemove = currentBotCount - desiredBotCount;
-                for (let i = players.length - 1; i >= 0; i--) {
-                    if (players[i].isBot && removed < toRemove) {
-                        players.splice(i, 1);
-                        removed++;
-                    }
-                }
-            }
+            }, 2000);
         }
 
-        function initSeamlessNetwork(playerName, callback) {
-            updateStatus('Connecting to Peer Grid...');
-            myPeer = new Peer();
-
-            myPeer.on('open', id => {
-                myPeerId = id;
-                attemptJoinOrHost(playerName, callback);
-            });
-
-            myPeer.on('error', err => {
-                becomeHost(playerName, callback);
-            });
-        }
-
-        function attemptJoinOrHost(playerName, callback) {
-            updateStatus('Searching for active room...');
-            const targetHostId = LOBBY_ID_PREFIX + '1';
-
-            if (myPeerId === targetHostId) {
-                becomeHost(playerName, callback);
-                return;
-            }
-
-            let connected = false;
-            const conn = myPeer.connect(targetHostId, { reliable: true });
-
-            const connectionTimeout = setTimeout(() => {
-                if (!connected) {
-                    conn.close();
-                    becomeHost(playerName, callback);
-                }
-            }, 1800);
-
-            conn.on('open', () => {
-                connected = true;
-                clearTimeout(connectionTimeout);
-                isHost = false;
-                hostConnection = conn;
-                updateStatus('Connected to Grid!');
-
-                conn.send({
-                    type: 'JOIN',
-                    name: playerName,
-                    peerId: myPeerId
-                });
-
-                if (callback) callback();
-            });
-
-            conn.on('error', () => {
-                clearTimeout(connectionTimeout);
-                becomeHost(playerName, callback);
-            });
-        }
-
-        function becomeHost(playerName, callback) {
+        function becomeHost() {
             isHost = true;
-            if (myPeer && myPeerId !== LOBBY_ID_PREFIX + '1') {
-                myPeer.destroy();
-                myPeer = new Peer(LOBBY_ID_PREFIX + '1');
+            document.getElementById('status-msg').innerText = 'Hosting Room (Auto-Server Active)';
 
-                myPeer.on('open', id => {
-                    myPeerId = id;
-                    setupHostServer(playerName, callback);
-                });
+            // Spawn initial ambient pellets and bots
+            for (let i = 0; i < 200; i++) spawnPellet();
+            for (let i = 0; i < BOT_TARGET_COUNT; i++) spawnBot();
 
-                myPeer.on('error', () => {
-                    myPeer = new Peer();
-                    myPeer.on('open', id => {
-                        myPeerId = id;
-                        setupHostServer(playerName, callback);
-                    });
-                });
-            } else {
-                setupHostServer(playerName, callback);
-            }
-        }
-
-        function setupHostServer(playerName, callback) {
-            isHost = true;
-            updateStatus('Grid Server Running!');
-
-            myPeer.on('connection', conn => {
-                clientConnections.push(conn);
-
-                conn.on('data', data => {
-                    if (data.type === 'JOIN') {
-                        const gx = 80 + Math.random() * (WORLD_SIZE - 160);
-                        const gy = 80 + Math.random() * (WORLD_SIZE - 160);
-                        const pRider = new Rider(data.peerId, data.name, gx, gy, DIR.RIGHT, '#ccff00', false);
-                        players.push(pRider);
-                        balanceBots();
-                    } else if (data.type === 'INPUT') {
-                        const p = players.find(playerObj => playerObj.id === data.peerId);
-                        if (p) p.setDirection(data.dir);
+            peer.on('connection', (conn) => {
+                connections[conn.peer] = conn;
+                conn.on('data', (data) => {
+                    if (data.type === 'input' && players[conn.peer]) {
+                        players[conn.peer].nextDir = data.dir;
                     }
                 });
-
-                conn.on('close', () => {
-                    clientConnections = clientConnections.filter(c => c !== conn);
-                    players = players.filter(p => p.id !== conn.peer);
-                    balanceBots();
-                });
             });
-
-            if (callback) callback();
         }
 
-        function drawBackground() {
-            ctx.fillStyle = '#040d1a';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
+        // --- CONTROLS ---
+        window.addEventListener('keydown', (e) => {
+            keys[e.key] = true;
+            if (!myPlayer || !myPlayer.alive) return;
 
-            // Render soft circular dotted pattern background matching Image 1
-            ctx.save();
-            ctx.fillStyle = 'rgba(15, 35, 60, 0.45)';
+            let newDir = null;
+            if (e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W') newDir = { x: 0, y: -1 };
+            if (e.key === 'ArrowDown' || e.key === 's' || e.key === 'S') newDir = { x: 0, y: 1 };
+            if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') newDir = { x: -1, y: 0 };
+            if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') newDir = { x: 1, y: 0 };
 
-            const dotSpacing = 30;
-            const startX = Math.floor((camera.x - canvas.width / 2) / dotSpacing) * dotSpacing;
-            const endX = startX + canvas.width + dotSpacing * 2;
-            const startY = Math.floor((camera.y - canvas.height / 2) / dotSpacing) * dotSpacing;
-            const endY = startY + canvas.height + dotSpacing * 2;
-
-            for (let x = startX; x <= endX; x += dotSpacing) {
-                for (let y = startY; y <= endY; y += dotSpacing) {
-                    ctx.beginPath();
-                    ctx.arc(x, y, 6, 0, Math.PI * 2);
-                    ctx.fill();
+            if (newDir) {
+                myPlayer.nextDir = newDir;
+                if (!isHost && connections[hostId]) {
+                    connections[hostId].send({ type: 'input', dir: newDir });
                 }
             }
-            ctx.restore();
-        }
+        });
 
-        function drawWorldBounds() {
-            ctx.save();
-            ctx.strokeStyle = '#00f3ff';
-            ctx.shadowColor = '#00f3ff';
-            ctx.shadowBlur = 15;
-            ctx.lineWidth = 4;
-            ctx.strokeRect(0, 0, WORLD_SIZE, WORLD_SIZE);
-            ctx.restore();
-        }
-
-        function drawMinimap() {
-            minimapCtx.clearRect(0, 0, minimapCanvas.width, minimapCanvas.height);
-            minimapCtx.fillStyle = '#040d1a';
-            minimapCtx.fillRect(0, 0, minimapCanvas.width, minimapCanvas.height);
-
-            const scale = minimapCanvas.width / WORLD_SIZE;
-
-            minimapCtx.strokeStyle = 'rgba(0, 243, 255, 0.3)';
-            minimapCtx.strokeRect(0, 0, minimapCanvas.width, minimapCanvas.height);
-
-            for (let p of players) {
-                if (!p.alive) continue;
-                minimapCtx.fillStyle = p === player ? '#ccff00' : (p.isBot ? '#ff0044' : '#00f3ff');
-                minimapCtx.fillRect(p.x * scale - 1.5, p.y * scale - 1.5, 3, 3);
+        // --- GAME LOOP ---
+        function gameLoop() {
+            // Update Local Player & Entities
+            for (let pid in players) {
+                players[pid].update();
             }
-        }
 
-        function updateLeaderboard() {
-            const sorted = [...players].sort((a,b) => b.score - a.score);
-            const list = document.getElementById('leaderboardList');
-            list.innerHTML = '';
-
-            sorted.slice(0, 6).forEach((p, index) => {
-                const row = document.createElement('div');
-                row.className = `flex justify-between items-center px-2 py-0.5 rounded ${p === player ? 'bg-cyber-lime/20 text-cyber-lime font-bold border border-cyber-lime/30' : 'text-gray-200'}`;
-                
-                const icon = p.isBot ? '<i class="fa-solid fa-robot text-cyber-yellow mr-1" title="Bot"></i>' : '<i class="fa-solid fa-user text-cyber-cyan mr-1" title="Player"></i>';
-
-                row.innerHTML = `<span class="flex items-center text-[11px]">${index + 1}. ${icon} ${p.name}</span><span class="font-bold text-[11px]">${p.score}</span>`;
-                list.appendChild(row);
-            });
-        }
-
-        function initGame(playerName) {
-            players = [];
-            floatingTexts = [];
-            initPellets();
-
-            const gx = 100 + Math.random() * (WORLD_SIZE - 200);
-            const gy = 100 + Math.random() * (WORLD_SIZE - 200);
-
-            player = new Rider(myPeerId || 'local_player', playerName, gx, gy, DIR.RIGHT, '#ccff00', false);
-            players.push(player);
-
+            // Sync logic if host
             if (isHost) {
-                balanceBots();
+                const serializedPlayers = {};
+                for (let pid in players) {
+                    const p = players[pid];
+                    serializedPlayers[pid] = {
+                        id: p.id, name: p.name, isBot: p.isBot,
+                        dir: p.dir, speed: p.speed, score: p.score,
+                        alive: p.alive, path: p.path, color: p.color
+                    };
+                }
+                for (let connId in connections) {
+                    connections[connId].send({ type: 'sync', players: serializedPlayers, pellets: foodPellets });
+                }
             }
 
-            gameActive = true;
-            document.getElementById('menuModal').classList.add('hidden');
-            document.getElementById('gameOverModal').classList.add('hidden');
-
-            let lastTimestamp = performance.now();
-
-            function gameLoop(now) {
-                const dt = Math.min((now - lastTimestamp) / 1000, 0.08);
-                lastTimestamp = now;
-
-                if (gameActive) {
-                    camera.update(player.x, player.y);
-
-                    // Update Riders
-                    for (let p of players) {
-                        p.update(dt);
-                    }
-
-                    // Update Floating Texts
-                    for (let i = floatingTexts.length - 1; i >= 0; i--) {
-                        let ft = floatingTexts[i];
-                        ft.y += ft.vy;
-                        ft.life -= 0.02;
-                        if (ft.life <= 0) floatingTexts.splice(i, 1);
-                    }
-
-                    // Update HUD
-                    document.getElementById('hudScore').innerText = player.score;
-                    document.getElementById('hudLength').innerText = Math.floor(player.targetLength);
-                    updateLeaderboard();
-                    updateRoleBadge();
-                }
-
-                // Clear & Render
-                ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-                drawBackground();
-
-                ctx.save();
-                ctx.translate(canvas.width / 2 - camera.x, canvas.height / 2 - camera.y);
-
-                drawWorldBounds();
-
-                // Draw Energy Pellets / Food Bits
-                for (let pel of pellets) {
-                    pel.draw(ctx);
-                }
-
-                // Determine Leader ID
-                const topPlayer = [...players].sort((a,b) => b.score - a.score)[0];
-
-                // Draw Riders
-                for (let p of players) {
-                    p.draw(ctx, p === topPlayer);
-                }
-
-                // Draw Floating Score Texts
-                for (let ft of floatingTexts) {
-                    ctx.save();
-                    ctx.globalAlpha = Math.max(0, ft.life);
-                    ctx.font = 'bold 13px Ubuntu';
-                    ctx.fillStyle = ft.color;
-                    ctx.shadowColor = ft.color;
-                    ctx.shadowBlur = 8;
-                    ctx.fillText(ft.text, ft.x - 15, ft.y);
-                    ctx.restore();
-                }
-
-                ctx.restore();
-
-                drawMinimap();
-
-                requestAnimationFrame(gameLoop);
+            // Center Camera on local player
+            if (myPlayer && myPlayer.alive) {
+                camera.x += (myPlayer.head.x - camera.x) * 0.1;
+                camera.y += (myPlayer.head.y - camera.y) * 0.1;
             }
 
+            render();
             requestAnimationFrame(gameLoop);
         }
 
-        function triggerGameOver() {
-            gameActive = false;
-            document.getElementById('finalScore').innerText = player.score;
-            document.getElementById('finalLength').innerText = Math.floor(player.targetLength);
-            document.getElementById('gameOverModal').classList.remove('hidden');
+        // --- RENDERING (Exact Image 1 Style) ---
+        function render() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+
+            // Clear Screen
+            ctx.fillStyle = '#060d1a';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            ctx.save();
+            // Translate Camera
+            ctx.translate(canvas.width / 2 - camera.x, canvas.height / 2 - camera.y);
+
+            // Draw Background Circles Grid (Match Image 1)
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.03)';
+            const startX = Math.floor((camera.x - canvas.width / 2) / GRID_SPACING) * GRID_SPACING;
+            const endX = camera.x + canvas.width / 2;
+            const startY = Math.floor((camera.y - canvas.height / 2) / GRID_SPACING) * GRID_SPACING;
+            const endY = camera.y + canvas.height / 2;
+
+            for (let x = startX; x < endX; x += GRID_SPACING) {
+                for (let y = startY; y < endY; y += GRID_SPACING) {
+                    ctx.beginPath();
+                    ctx.arc(x, y, 4, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            }
+
+            // Draw World Outer Boundary
+            ctx.strokeStyle = '#ff0055';
+            ctx.lineWidth = 6;
+            ctx.strokeRect(0, 0, WORLD_SIZE, WORLD_SIZE);
+
+            // Draw Food Pellets (Rounded Rects/Glows)
+            foodPellets.forEach(p => {
+                ctx.fillStyle = p.color;
+                ctx.shadowColor = p.color;
+                ctx.shadowBlur = 8;
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+                ctx.fill();
+            });
+            ctx.shadowBlur = 0; // Reset Shadow
+
+            // Find Top Leader
+            let topPlayer = null;
+            let maxScore = -1;
+            for (let pid in players) {
+                if (players[pid].alive && players[pid].score > maxScore) {
+                    maxScore = players[pid].score;
+                    topPlayer = players[pid];
+                }
+            }
+
+            // Draw Players / Lines
+            for (let pid in players) {
+                const p = players[pid];
+                if (!p.alive || p.path.length < 2) continue;
+
+                // Draw Neon Line Path
+                ctx.strokeStyle = p.color;
+                ctx.lineWidth = LINE_WIDTH;
+                ctx.lineCap = 'round';
+                ctx.lineJoin = 'round';
+                ctx.shadowColor = p.color;
+                ctx.shadowBlur = 12;
+
+                ctx.beginPath();
+                ctx.moveTo(p.path[0].x, p.path[0].y);
+                for (let i = 1; i < p.path.length; i++) {
+                    ctx.lineTo(p.path[i].x, p.path[i].y);
+                }
+                ctx.stroke();
+
+                // Draw Head Circle Glow (Match Image 1)
+                const head = p.head;
+                ctx.fillStyle = '#ffffff';
+                ctx.beginPath();
+                ctx.arc(head.x, head.y, LINE_WIDTH * 0.7, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Draw Crown for Leader
+                if (topPlayer && topPlayer.id === p.id) {
+                    ctx.font = '16px sans-serif';
+                    ctx.fillText('👑', head.x - 8, head.y - 20);
+                }
+
+                // Draw Name Tag
+                ctx.shadowBlur = 0;
+                ctx.font = 'bold 12px Arial';
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
+                ctx.textAlign = 'center';
+                ctx.fillText(p.name, head.x, head.y + 25);
+            }
+
+            // Draw Sparks
+            for (let i = sparkParticles.length - 1; i >= 0; i--) {
+                const sp = sparkParticles[i];
+                ctx.fillStyle = sp.color;
+                ctx.fillRect(sp.x, sp.y, 3, 3);
+                sp.x += sp.vx;
+                sp.y += sp.vy;
+                sp.life -= 0.05;
+                if (sp.life <= 0) sparkParticles.splice(i, 1);
+            }
+
+            ctx.restore();
+
+            // Render HUD
+            renderLeaderboard();
+            renderMinimap();
         }
 
-        // Keyboard Movement Controls
-        window.addEventListener('keydown', e => {
-            if (!player || !player.alive) return;
+        function renderLeaderboard() {
+            const listEl = document.getElementById('lb-list');
+            const sorted = Object.values(players)
+                .filter(p => p.alive)
+                .sort((a, b) => b.score - a.score)
+                .slice(0, 6);
 
-            let turnDir = null;
-            if (e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W') turnDir = DIR.UP;
-            if (e.key === 'ArrowDown' || e.key === 's' || e.key === 'S') turnDir = DIR.DOWN;
-            if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') turnDir = DIR.LEFT;
-            if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') turnDir = DIR.RIGHT;
+            listEl.innerHTML = sorted.map((p, idx) => `
+                <div class="lb-entry ${p.id === myId ? 'me' : ''}">
+                    <span>${idx + 1}. ${p.isBot ? '🤖' : '👤'} ${p.name}</span>
+                    <span>${Math.floor(p.score)}</span>
+                </div>
+            `).join('');
+        }
 
-            if (turnDir) {
-                player.setDirection(turnDir);
-                if (!isHost && hostConnection) {
-                    hostConnection.send({
-                        type: 'INPUT',
-                        peerId: myPeerId,
-                        dir: turnDir
-                    });
-                }
+        function renderMinimap() {
+            mctx.fillStyle = '#050b14';
+            mctx.fillRect(0, 0, 140, 140);
+
+            const scale = 140 / WORLD_SIZE;
+            for (let pid in players) {
+                const p = players[pid];
+                if (!p.alive) continue;
+                mctx.fillStyle = p.id === myId ? '#39ff14' : '#ff0055';
+                mctx.fillRect(p.head.x * scale, p.head.y * scale, 3, 3);
             }
-        });
+        }
 
-        // Touch Swipe Gestures
-        let touchStartX = 0, touchStartY = 0;
-        window.addEventListener('touchstart', e => {
-            if (e.touches.length > 0) {
-                touchStartX = e.touches[0].clientX;
-                touchStartY = e.touches[0].clientY;
-            }
-        });
+        // --- BUTTON HANDLERS ---
+        document.getElementById('play-btn').addEventListener('click', startGame);
+        document.getElementById('respawn-btn').addEventListener('click', respawnGame);
 
-        window.addEventListener('touchend', e => {
-            if (!player || !player.alive || e.changedTouches.length === 0) return;
-            const dx = e.changedTouches[0].clientX - touchStartX;
-            const dy = e.changedTouches[0].clientY - touchStartY;
+        function startGame() {
+            const name = document.getElementById('nickname').value || 'PowerRider';
+            const pos = findSafeSpawn();
 
-            let turnDir = null;
-            if (Math.abs(dx) > Math.abs(dy)) {
-                if (Math.abs(dx) > 20) turnDir = dx > 0 ? DIR.RIGHT : DIR.LEFT;
-            } else {
-                if (Math.abs(dy) > 20) turnDir = dy > 0 ? DIR.DOWN : DIR.UP;
-            }
+            myPlayer = new Player(myId, name, pos.x, pos.y, false);
+            players[myId] = myPlayer;
 
-            if (turnDir) {
-                player.setDirection(turnDir);
-                if (!isHost && hostConnection) {
-                    hostConnection.send({
-                        type: 'INPUT',
-                        peerId: myPeerId,
-                        dir: turnDir
-                    });
-                }
-            }
-        });
+            // Instantly snap camera to player
+            camera.x = pos.x;
+            camera.y = pos.y;
 
-        // Menu Event Listeners
-        document.getElementById('playBtn').addEventListener('click', () => {
-            sound.init();
-            const name = document.getElementById('playerNameInput').value.trim() || 'PowerRider';
-            document.getElementById('playBtnText').innerText = 'CONNECTING...';
+            document.getElementById('menu-screen').style.display = 'none';
+            isPlaying = true;
+        }
 
-            initSeamlessNetwork(name, () => {
-                initGame(name);
-            });
-        });
+        function respawnGame() {
+            document.getElementById('death-screen').style.display = 'none';
+            startGame();
+        }
 
-        document.getElementById('restartBtn').addEventListener('click', () => {
-            const name = document.getElementById('playerNameInput').value.trim() || 'PowerRider';
-            initGame(name);
-        });
+        // --- INITIALIZATION ---
+        initNetwork();
+        requestAnimationFrame(gameLoop);
     </script>
 </body>
 </html>
