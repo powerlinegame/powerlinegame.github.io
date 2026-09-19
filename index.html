@@ -322,7 +322,7 @@
 
             <div class="input-group">
                 <label for="nickname">Enter Nickname</label>
-                <input type="text" id="nickname" maxlength="15" value="PowerRider" placeholder="Player Name" />
+                <input type="text" id="nickname" maxlength="15" value="Player" placeholder="Player Name" />
             </div>
 
             <button class="btn-play" id="play-btn">PLAY NOW</button>
@@ -674,7 +674,7 @@
 
         function spawnBot() {
             const botId = 'bot_' + Math.random().toString(36).substr(2, 6);
-            const botNames = ['CyberNeon', 'GridGhost', 'NullPointer', 'ByteSlayer', 'LaserTail', 'VoltRunner', 'GridOverlord'];
+            const botNames = ['CinoSaval', 'Tiawo', 'Tiapon', 'Xhishua', 'Xhanilla', 'Xiaota', 'Porxioa', 'Miwau', 'Tempala', 'Dhucai', 'Alapan', 'Xiaoxiao', 'Dompala', 'Jip', 'Indypol', 'HPax', 'Halpal', 'Scram', 'Hezo', 'Luwow', 'Swoon', 'Paxolon', 'Scraper', 'Narnia', 'XK2', 'Ento', 'Extrapol'];
             const name = botNames[Math.floor(Math.random() * botNames.length)];
             const pos = findSafeSpawn();
             players[botId] = new Player(botId, name, pos.x, pos.y, true);
