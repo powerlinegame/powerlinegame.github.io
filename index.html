@@ -29,7 +29,6 @@
             background-color: #060d1a;
         }
 
-        /* --- UI OVERLAYS --- */
         .overlay {
             position: absolute;
             top: 0;
@@ -43,7 +42,6 @@
             padding: 20px;
         }
 
-        /* Menu Container (Unboxed) */
         #menu-screen {
             position: absolute;
             top: 0;
@@ -164,7 +162,6 @@
             box-shadow: 0 0 8px #ffaa00;
         }
 
-        /* --- HUD ELEMENTS --- */
         #leaderboard {
             position: absolute;
             top: 20px;
@@ -201,7 +198,6 @@
             color: #39ff14;
         }
 
-        /* Killfeed */
         #killfeed {
             position: absolute;
             bottom: 20px;
@@ -231,7 +227,6 @@
             to { opacity: 1; transform: translateX(0); }
         }
 
-        /* Death Screen Overlay */
         #death-screen {
             position: absolute;
             top: 0;
@@ -296,7 +291,6 @@
             text-transform: uppercase;
         }
 
-        /* Minimap */
         #minimap-container {
             position: absolute;
             top: 20px;
@@ -321,7 +315,6 @@
 
     <canvas id="game-canvas"></canvas>
 
-    <!-- Main Menu -->
     <div id="menu-screen">
         <div class="menu-content">
             <img src="logo.png" alt="Powerline.io" id="game-logo" onerror="this.style.display='none'; document.querySelector('.logo-fallback').style.display='block';">
@@ -336,12 +329,11 @@
 
             <div class="status-text">
                 <div class="status-dot" id="status-dot"></div>
-                <span id="status-msg">Searching for available lobby...</span>
+                <span id="status-msg">Traversing STUN / Connecting...</span>
             </div>
         </div>
     </div>
 
-    <!-- Death Modal -->
     <div id="death-screen">
         <div class="death-card">
             <div class="death-title">CIRCUIT SHORTED</div>
@@ -359,7 +351,6 @@
         </div>
     </div>
 
-    <!-- Gameplay HUD -->
     <div class="overlay">
         <div id="minimap-container">
             <canvas id="minimap" width="140" height="140"></canvas>
@@ -374,7 +365,6 @@
     </div>
 
     <script>
-        // --- GLOBALS & CONFIGURATION ---
         const WORLD_SIZE = 4000;
         const BASE_SPEED = 3.8;
         const BOOST_SPEED = 7.5;
@@ -382,7 +372,20 @@
         const GRID_SPACING = 40;
         const MIN_SAFE_DIST = 300;
         const BOT_TARGET_COUNT = 8;
-        const HOST_ROOM_ID = 'powerline-global-shared-lobby';
+        const HOST_ROOM_ID = 'powerline-global-v2-room';
+
+        // STUN / ICE Configuration for NAT & VPN Traversal
+        const PEER_CONFIG = {
+            config: {
+                iceServers: [
+                    { urls: 'stun:stun.l.google.com:19302' },
+                    { urls: 'stun:stun1.l.google.com:19302' },
+                    { urls: 'stun:stun2.l.google.com:19302' },
+                    { urls: 'stun:stun3.l.google.com:19302' },
+                    { urls: 'stun:stun4.l.google.com:19302' }
+                ]
+            }
+        };
 
         const canvas = document.getElementById('game-canvas');
         const ctx = canvas.getContext('2d');
@@ -394,12 +397,10 @@
         let isPlaying = false;
         let myPlayer = null;
 
-        // Shared Game State
         let players = {};
         let foodPellets = [];
         let sparkParticles = [];
 
-        // Networking
         let peer = null;
         let hostConnection = null;
         let connections = {};
@@ -407,7 +408,6 @@
 
         const keys = {};
 
-        // --- PLAYER CLASS ---
         class Player {
             constructor(id, name, x, y, isBot = false) {
                 this.id = id;
@@ -428,7 +428,6 @@
                 }
 
                 this.botTimer = 0;
-                this.botAggroTarget = null;
             }
 
             get head() {
@@ -438,7 +437,6 @@
             update() {
                 if (!this.alive) return;
 
-                // Handle Turn Changes
                 if ((this.nextDir.x !== 0 && this.nextDir.x !== -this.dir.x) ||
                     (this.nextDir.y !== 0 && this.nextDir.y !== -this.dir.y)) {
                     this.dir = { ...this.nextDir };
@@ -462,13 +460,11 @@
                     this.path.pop();
                 }
 
-                // Wall Collisions
                 if (newHead.x < 0 || newHead.x > WORLD_SIZE || newHead.y < 0 || newHead.y > WORLD_SIZE) {
                     killPlayer(this, null, 'wall');
                     return;
                 }
 
-                // Collect Food
                 for (let i = foodPellets.length - 1; i >= 0; i--) {
                     const p = foodPellets[i];
                     if (Math.hypot(newHead.x - p.x, newHead.y - p.y) < LINE_WIDTH + p.size) {
@@ -535,11 +531,9 @@
                 }
             }
 
-            // LEADER SWARM AI LOGIC
             updateBot() {
                 this.botTimer++;
 
-                // Find Leader
                 let leader = null;
                 let topScore = -1;
                 for (let pid in players) {
@@ -549,28 +543,18 @@
                     }
                 }
 
-                // Direction choices
                 const possibleDirs = this.dir.x !== 0 ? 
                     [{ x: 0, y: 1 }, { x: 0, y: -1 }] : 
                     [{ x: 1, y: 0 }, { x: -1, y: 0 }];
 
                 let wantedDir = this.dir;
 
-                // Behavior: Seek and swarm around leader
                 if (leader && leader.id !== this.id && Math.random() < 0.3) {
-                    const targetX = leader.head.x;
-                    const targetY = leader.head.y;
-                    const dx = targetX - this.head.x;
-                    const dy = targetY - this.head.y;
-
-                    if (Math.abs(dx) > Math.abs(dy)) {
-                        wantedDir = { x: Math.sign(dx), y: 0 };
-                    } else {
-                        wantedDir = { x: 0, y: Math.sign(dy) };
-                    }
+                    const dx = leader.head.x - this.head.x;
+                    const dy = leader.head.y - this.head.y;
+                    wantedDir = Math.abs(dx) > Math.abs(dy) ? { x: Math.sign(dx), y: 0 } : { x: 0, y: Math.sign(dy) };
                 }
 
-                // Check collision safety for next steps
                 let safeDir = null;
                 for (let candidate of [wantedDir, ...possibleDirs]) {
                     if ((candidate.x !== 0 && candidate.x === -this.dir.x) || 
@@ -608,7 +592,6 @@
             }
         }
 
-        // --- SAFE SPAWN FINDER ---
         function findSafeSpawn() {
             let attempt = 0;
             while (attempt < 100) {
@@ -698,18 +681,21 @@
             });
         }
 
-        // --- AUTOMATIC LOBBY JOIN / HOSTING SYSTEM ---
         function initNetwork() {
-            peer = new Peer();
+            peer = new Peer(PEER_CONFIG);
 
             peer.on('open', (id) => {
                 myId = id;
-                document.getElementById('status-msg').innerText = 'Searching for existing room...';
+                document.getElementById('status-msg').innerText = 'Searching for active global host...';
                 attemptToJoinHost();
             });
 
-            peer.on('error', () => {
-                becomeHost();
+            peer.on('error', (err) => {
+                if (err.type === 'unavailable-id') {
+                    attemptToJoinHost();
+                } else {
+                    becomeHost();
+                }
             });
         }
 
@@ -721,7 +707,7 @@
                 connected = true;
                 isHost = false;
                 hostConnection = conn;
-                document.getElementById('status-msg').innerText = 'Joined Online Room!';
+                document.getElementById('status-msg').innerText = 'Connected to Host (Multiplayer Active)!';
                 document.getElementById('status-dot').style.backgroundColor = '#39ff14';
                 document.getElementById('status-dot').style.boxShadow = '0 0 8px #39ff14';
             });
@@ -737,23 +723,22 @@
                 }
             });
 
-            // Timeout: Become Host if no active shared lobby responds
             setTimeout(() => {
                 if (!connected) {
                     conn.close();
                     becomeHost();
                 }
-            }, 1800);
+            }, 2500);
         }
 
         function becomeHost() {
             peer.destroy();
-            peer = new Peer(HOST_ROOM_ID);
+            peer = new Peer(HOST_ROOM_ID, PEER_CONFIG);
 
             peer.on('open', (id) => {
                 myId = id;
                 isHost = true;
-                document.getElementById('status-msg').innerText = 'Hosting Active Lobby (Server Online)';
+                document.getElementById('status-msg').innerText = 'Hosting Global Room (VPN Relays Active)';
                 document.getElementById('status-dot').style.backgroundColor = '#39ff14';
                 document.getElementById('status-dot').style.boxShadow = '0 0 8px #39ff14';
 
@@ -771,12 +756,10 @@
             });
 
             peer.on('error', () => {
-                // Shared room active -> retry client connection
                 setTimeout(initNetwork, 1000);
             });
         }
 
-        // --- CONTROLS ---
         window.addEventListener('keydown', (e) => {
             keys[e.key] = true;
             if (!myPlayer || !myPlayer.alive) return;
@@ -795,7 +778,6 @@
             }
         });
 
-        // --- GAME LOOP ---
         function gameLoop() {
             for (let pid in players) {
                 players[pid].update();
@@ -827,7 +809,6 @@
             requestAnimationFrame(gameLoop);
         }
 
-        // --- RENDERING ---
         function render() {
             canvas.width = window.innerWidth;
             canvas.height = window.innerHeight;
@@ -838,7 +819,6 @@
             ctx.save();
             ctx.translate(canvas.width / 2 - camera.x, canvas.height / 2 - camera.y);
 
-            // Dotted Grid
             ctx.fillStyle = 'rgba(255, 255, 255, 0.03)';
             const startX = Math.floor((camera.x - canvas.width / 2) / GRID_SPACING) * GRID_SPACING;
             const endX = camera.x + canvas.width / 2;
@@ -853,12 +833,10 @@
                 }
             }
 
-            // Boundary
             ctx.strokeStyle = '#ff0055';
             ctx.lineWidth = 6;
             ctx.strokeRect(0, 0, WORLD_SIZE, WORLD_SIZE);
 
-            // Pellets
             foodPellets.forEach(p => {
                 ctx.fillStyle = p.color;
                 ctx.shadowColor = p.color;
@@ -869,7 +847,6 @@
             });
             ctx.shadowBlur = 0;
 
-            // Leader Crown Lookup
             let topPlayer = null;
             let maxScore = -1;
             for (let pid in players) {
@@ -879,7 +856,6 @@
                 }
             }
 
-            // Players / Bots
             for (let pid in players) {
                 const p = players[pid];
                 if (!p.alive || p.path.length < 2) continue;
@@ -916,7 +892,6 @@
                 ctx.fillText(p.name, head.x, head.y + 25);
             }
 
-            // Sparks
             for (let i = sparkParticles.length - 1; i >= 0; i--) {
                 const sp = sparkParticles[i];
                 ctx.fillStyle = sp.color;
@@ -961,7 +936,6 @@
             }
         }
 
-        // --- BUTTON HANDLERS ---
         document.getElementById('play-btn').addEventListener('click', startGame);
         document.getElementById('respawn-btn').addEventListener('click', respawnGame);
 
@@ -984,7 +958,6 @@
             startGame();
         }
 
-        // --- INIT ---
         initNetwork();
         requestAnimationFrame(gameLoop);
     </script>
