@@ -1,0 +1,1268 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Powerline.io Clone</title>
+    <!-- Tailwind CSS for UI Overlay -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- PeerJS for Serverless WebRTC Multiplayer (GitHub Pages friendly) -->
+    <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@500;700&display=swap');
+        
+        * {
+            touch-action: none;
+            user-select: none;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background-color: #030712;
+            font-family: 'Rajdhani', sans-serif;
+            color: #fff;
+        }
+
+        .font-orbitron {
+            font-family: 'Orbitron', sans-serif;
+        }
+
+        /* Glassmorphism panels */
+        .glass-panel {
+            background: rgba(15, 23, 42, 0.75);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        /* Custom glow effects */
+        .glow-cyan {
+            box-shadow: 0 0 20px rgba(6, 182, 212, 0.5);
+        }
+        .text-glow-cyan {
+            text-shadow: 0 0 10px rgba(6, 182, 212, 0.8);
+        }
+        
+        /* D-Pad Touch Controls */
+        .dpad-btn {
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            active:bg-cyan-500/40;
+        }
+        .dpad-btn:active {
+            background: rgba(6, 182, 212, 0.4);
+            transform: scale(0.95);
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(0,0,0,0.2);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(6, 182, 212, 0.5);
+            border-radius: 3px;
+        }
+    </style>
+</head>
+<body class="w-screen h-screen relative flex items-center justify-center overflow-hidden">
+
+    <!-- Main Game Canvas -->
+    <canvas id="gameCanvas" class="absolute inset-0 w-full h-full z-0 block"></canvas>
+
+    <!-- HUD Overlay (Active when playing) -->
+    <div id="hudOverlay" class="absolute inset-0 pointer-events-none z-10 hidden flex flex-col justify-between p-4 md:p-6">
+        <!-- Top HUD Bar -->
+        <div class="flex justify-between items-start w-full">
+            <!-- Player Stats -->
+            <div class="glass-panel p-3 md:p-4 rounded-xl flex items-center space-x-4 border-l-4 border-cyan-500">
+                <div>
+                    <div class="text-xs text-cyan-400 font-orbitron uppercase tracking-wider">Electric Length</div>
+                    <div id="hudScore" class="text-2xl md:text-3xl font-black font-orbitron text-white text-glow-cyan">100m</div>
+                </div>
+                <div class="h-8 w-px bg-slate-700"></div>
+                <div>
+                    <div class="text-xs text-yellow-400 font-orbitron uppercase tracking-wider">Boost Status</div>
+                    <div id="hudBoostText" class="text-sm font-bold text-slate-400">Normal</div>
+                </div>
+            </div>
+
+            <!-- Dynamic Leaderboard & Room Code -->
+            <div class="flex flex-col items-end space-y-2">
+                <div class="glass-panel p-3 md:p-4 rounded-xl w-48 md:w-64 border-r-4 border-cyan-500">
+                    <div class="flex justify-between items-center mb-2 pb-1 border-b border-slate-700/50">
+                        <span class="text-xs font-orbitron text-cyan-400 uppercase tracking-wider font-bold">Leaderboard</span>
+                        <span id="playerCountText" class="text-xs text-slate-400">0 Players</span>
+                    </div>
+                    <div id="leaderboardList" class="space-y-1 text-xs md:text-sm">
+                        <!-- Filled dynamically -->
+                    </div>
+                </div>
+
+                <!-- Room Info Pill -->
+                <div id="hudRoomPill" class="glass-panel px-3 py-1.5 rounded-lg text-xs font-mono text-cyan-300 flex items-center space-x-2">
+                    <span class="inline-block w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                    <span id="hudRoomCode">LOCAL (AI BOTS)</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Boost Indicator Bar -->
+        <div class="w-full max-w-md mx-auto mb-2 pointer-events-none flex flex-col items-center">
+            <div id="boostGlowBar" class="w-full h-3 bg-slate-800/80 rounded-full overflow-hidden border border-slate-600/50 p-0.5 transition-all">
+                <div id="boostFill" class="h-full bg-gradient-to-r from-cyan-500 via-yellow-400 to-amber-500 rounded-full w-0 transition-all duration-100"></div>
+            </div>
+            <span class="text-[10px] font-orbitron text-cyan-300/80 tracking-widest mt-1 uppercase">Drive close to lines to boost!</span>
+        </div>
+
+        <!-- Bottom HUD & Minimap / Mobile Controls -->
+        <div class="flex justify-between items-end w-full">
+            <!-- Minimap -->
+            <div class="glass-panel p-2 rounded-xl border border-slate-700/50 relative">
+                <canvas id="minimapCanvas" width="120" height="120" class="rounded-lg bg-slate-950/80"></canvas>
+            </div>
+
+            <!-- Mobile Touch D-Pad -->
+            <div class="pointer-events-auto md:hidden grid grid-cols-3 gap-1.5 w-36 h-36">
+                <div></div>
+                <button id="btnUp" class="dpad-btn rounded-t-xl flex items-center justify-center text-cyan-400 text-xl"><i class="fa-solid fa-chevron-up"></i></button>
+                <div></div>
+                <button id="btnLeft" class="dpad-btn rounded-l-xl flex items-center justify-center text-cyan-400 text-xl"><i class="fa-solid fa-chevron-left"></i></button>
+                <div class="flex items-center justify-center text-slate-600 text-xs font-mono"><i class="fa-solid fa-gamepad"></i></div>
+                <button id="btnRight" class="dpad-btn rounded-r-xl flex items-center justify-center text-cyan-400 text-xl"><i class="fa-solid fa-chevron-right"></i></button>
+                <div></div>
+                <button id="btnDown" class="dpad-btn rounded-b-xl flex items-center justify-center text-cyan-400 text-xl"><i class="fa-solid fa-chevron-down"></i></button>
+                <div></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MAIN MENU overlay -->
+    <div id="menuOverlay" class="absolute inset-0 z-20 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md">
+        <div class="glass-panel p-6 md:p-8 rounded-3xl max-w-md w-full shadow-2xl border border-cyan-500/30 text-center relative overflow-hidden">
+            <!-- Subtle background accent glow -->
+            <div class="absolute -top-24 -left-24 w-48 h-48 bg-cyan-500/20 rounded-full blur-3xl pointer-events-none"></div>
+            <div class="absolute -bottom-24 -right-24 w-48 h-48 bg-purple-500/20 rounded-full blur-3xl pointer-events-none"></div>
+
+            <!-- Title -->
+            <h1 class="text-4xl md:text-5xl font-black font-orbitron tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-teal-300 to-indigo-400 mb-1 drop-shadow">
+                POWERLINE<span class="text-cyan-400">.IO</span>
+            </h1>
+            <p class="text-xs text-cyan-300/70 font-mono tracking-widest uppercase mb-6">Neon Grid Cyber-Line Arena</p>
+
+            <!-- Player Input Form -->
+            <div class="space-y-4 mb-6 text-left">
+                <div>
+                    <label class="block text-xs font-orbitron text-slate-300 mb-1 uppercase tracking-wider">Line Designation (Name)</label>
+                    <input type="text" id="playerNameInput" maxlength="15" value="CyberLine" 
+                           class="w-full bg-slate-900/90 border border-slate-700 rounded-xl px-4 py-3 text-cyan-300 font-bold focus:outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400 transition-all">
+                </div>
+
+                <!-- Color selector -->
+                <div>
+                    <label class="block text-xs font-orbitron text-slate-300 mb-1 uppercase tracking-wider">Line Energy Color</label>
+                    <div id="colorPicker" class="grid grid-cols-6 gap-2">
+                        <!-- Populated by JS -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Play Solo vs Bots -->
+            <button id="btnPlaySolo" class="w-full py-3.5 px-6 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 font-black font-orbitron text-lg tracking-wider transition-all transform hover:-translate-y-0.5 active:translate-y-0 shadow-lg shadow-cyan-500/25 mb-4 flex items-center justify-center space-x-2">
+                <i class="fa-solid fa-play"></i>
+                <span>PLAY VS BOTS</span>
+            </button>
+
+            <!-- PeerJS WebRTC Multiplayer Accordion -->
+            <div class="border-t border-slate-800 pt-4">
+                <button id="toggleMultiplayerBtn" class="text-xs font-orbitron text-cyan-400 hover:text-cyan-300 flex items-center justify-center space-x-2 w-full transition-colors">
+                    <i class="fa-solid fa-network-wired"></i>
+                    <span>MULTIPLAYER (Peer2Peer / Room Codes)</span>
+                    <i id="mpChevron" class="fa-solid fa-chevron-down text-[10px] transition-transform"></i>
+                </button>
+
+                <div id="multiplayerSection" class="hidden mt-4 space-y-3 bg-slate-900/60 p-3.5 rounded-2xl border border-slate-800/80 text-left">
+                    <p class="text-[11px] text-slate-400 leading-relaxed">
+                        No backend server required! Powered by WebRTC. Host a room or join a friend's room using their unique ID.
+                    </p>
+
+                    <!-- Host Section -->
+                    <div class="flex items-center space-x-2">
+                        <button id="btnHostRoom" class="w-full py-2 px-3 bg-slate-800 hover:bg-slate-700 text-cyan-300 rounded-lg text-xs font-orbitron border border-slate-600 transition-all flex items-center justify-center space-x-2">
+                            <i class="fa-solid fa-server"></i>
+                            <span>CREATE ROOM</span>
+                        </button>
+                    </div>
+
+                    <div id="hostRoomInfo" class="hidden p-2.5 bg-slate-950 rounded-lg border border-cyan-500/40 text-center">
+                        <div class="text-[10px] text-slate-400 uppercase font-orbitron">Your Room Code</div>
+                        <div id="myRoomCode" class="text-lg font-mono font-bold text-cyan-400 select-all my-0.5">...</div>
+                        <div class="text-[10px] text-slate-500">Share this code with friends so they can join!</div>
+                    </div>
+
+                    <!-- Join Section -->
+                    <div class="space-y-2 pt-1 border-t border-slate-800">
+                        <div class="flex space-x-2">
+                            <input type="text" id="joinRoomInput" placeholder="Enter Room Code..." 
+                                   class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white uppercase font-mono focus:outline-none focus:border-cyan-400">
+                            <button id="btnJoinRoom" class="py-2 px-4 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-orbitron font-bold transition-all whitespace-nowrap">
+                                JOIN
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Controls Quick Reference -->
+            <div class="mt-6 pt-4 border-t border-slate-800 text-[11px] text-slate-400 flex justify-around font-mono">
+                <span><i class="fa-solid fa-keyboard text-cyan-400 mr-1"></i> WASD / Arrows to Turn</span>
+                <span><i class="fa-solid fa-bolt text-yellow-400 mr-1"></i> Ride lines to Boost</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- GAME OVER OVERLAY -->
+    <div id="gameOverOverlay" class="absolute inset-0 z-30 hidden flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-md">
+        <div class="glass-panel p-6 md:p-8 rounded-3xl max-w-sm w-full text-center border border-red-500/40 shadow-2xl">
+            <div class="w-16 h-16 rounded-full bg-red-500/10 border border-red-500/30 text-red-500 flex items-center justify-center text-2xl mx-auto mb-4">
+                <i class="fa-solid fa-skull"></i>
+            </div>
+            <h2 class="text-3xl font-black font-orbitron text-red-500 tracking-wider mb-1">LINE TERMINATED</h2>
+            <p id="deathReason" class="text-xs text-slate-400 font-mono mb-4">You collided with an electrical barrier.</p>
+
+            <div class="bg-slate-900/80 rounded-xl p-4 border border-slate-800 mb-6 space-y-2">
+                <div class="flex justify-between items-center text-xs text-slate-400">
+                    <span>Final Length:</span>
+                    <span id="finalScore" class="text-base font-orbitron font-bold text-cyan-400">0m</span>
+                </div>
+                <div class="flex justify-between items-center text-xs text-slate-400">
+                    <span>Kills / Cut-offs:</span>
+                    <span id="finalKills" class="text-base font-orbitron font-bold text-yellow-400">0</span>
+                </div>
+            </div>
+
+            <button id="btnRespawn" class="w-full py-3.5 px-6 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 font-black font-orbitron text-lg tracking-wider transition-all transform hover:-translate-y-0.5 active:translate-y-0 shadow-lg shadow-cyan-500/25">
+                RESPAWN
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // --- CONSTANTS & CONFIGURATION ---
+        const WORLD_SIZE = 4000;          // World boundary size (4000x4000)
+        const GRID_STEP = 12;             // Base movement grid step
+        const DEFAULT_SPEED = 3.2;         // Normal speed
+        const BOOST_SPEED = 6.2;           // Speed when boosting alongside another line
+        const LINE_WIDTH = 8;             // Rendered width of lines
+        const BOOST_DISTANCE = 35;        // Distance threshold to trigger boosting off nearby lines
+        const MAX_BOTS = 24;              // Max AI bots in single player / host mode
+        const FOOD_COUNT = 700;           // Number of power orbs in the arena
+
+        // Available palette colors
+        const LINE_COLORS = [
+            { name: "Cyan", hex: "#06b6d4", glow: "#22d3ee" },
+            { name: "Neon Green", hex: "#10b981", glow: "#34d399" },
+            { name: "Electric Purple", hex: "#a855f7", glow: "#c084fc" },
+            { name: "Hot Pink", hex: "#ec4899", glow: "#f472b6" },
+            { name: "Amber Orange", hex: "#f59e0b", glow: "#fbbf24" },
+            { name: "Bright Red", hex: "#ef4444", glow: "#f87171" }
+        ];
+
+        // System State
+        let canvas, ctx;
+        let minimapCanvas, minimapCtx;
+        let selectedColor = LINE_COLORS[0];
+        let localPlayer = null;
+        let players = new Map(); // id -> PlayerLine
+        let foodOrbs = [];
+        let particles = [];
+        let camera = { x: 0, y: 0, viewportW: 0, viewportH: 0, zoom: 1 };
+        let isPlaying = false;
+        let killsCount = 0;
+
+        // Multiplayer / PeerJS variables
+        let peer = null;
+        let hostConn = null; // Client's connection to host
+        let clientConns = []; // Host's connections to clients
+        let isHost = true;
+        let myPeerId = null;
+
+        // --- STREAMING_CHUNK:Defining Player and Entity Classes... ---
+
+        /**
+         * Represents a Line/Snake in the Powerline arena.
+         */
+        class PlayerLine {
+            constructor(id, name, colorHex, glowHex, x, y, isBot = false) {
+                this.id = id;
+                this.name = name;
+                this.colorHex = colorHex;
+                this.glowHex = glowHex;
+                this.isBot = isBot;
+
+                this.x = x;
+                this.y = y;
+                this.dir = { x: 1, y: 0 }; // Direction vector
+                this.nextDir = { x: 1, y: 0 }; // Queued turn direction
+                
+                // Trail points (array of {x, y})
+                this.path = [
+                    { x: x - 100, y: y },
+                    { x: x, y: y }
+                ];
+                
+                this.length = 150;        // Desired length
+                this.speed = DEFAULT_SPEED;
+                this.isBoosting = false;
+                this.boostCharge = 0;     // Visual multiplier for boost effects
+                this.dead = false;
+
+                // AI state
+                this.aiTargetDirTimer = 0;
+                this.aiLookahead = 80;
+            }
+
+            update(dt) {
+                if (this.dead) return;
+
+                // Apply queued direction change (must be 90-degree turn, no 180s)
+                if ((this.nextDir.x !== 0 && this.dir.x === 0) || (this.nextDir.y !== 0 && this.dir.y === 0)) {
+                    // Check if direction change is distinct enough from head to prevent self-instant collapse
+                    const head = this.path[this.path.length - 1];
+                    const prevSegment = this.path[this.path.length - 2];
+                    const distFromCorner = Math.hypot(head.x - prevSegment.x, head.y - prevSegment.y);
+                    if (distFromCorner > LINE_WIDTH) {
+                        this.dir = { ...this.nextDir };
+                        this.path.push({ x: this.x, y: this.y }); // Add corner point
+                    }
+                }
+
+                // Boosting speed modifier
+                this.speed = this.isBoosting ? BOOST_SPEED : DEFAULT_SPEED;
+                
+                // Move Head Position
+                const moveDist = this.speed * (dt / 16.6);
+                this.x += this.dir.x * moveDist;
+                this.y += this.dir.y * moveDist;
+
+                // Clamp to arena bounds
+                if (this.x < 0 || this.x > WORLD_SIZE || this.y < 0 || this.y > WORLD_SIZE) {
+                    this.die("Collided with the grid boundary.");
+                    return;
+                }
+
+                // Update current head in path
+                this.path[this.path.length - 1] = { x: this.x, y: this.y };
+
+                // Trim path tail to match exact desired line length
+                this.trimPath();
+
+                // AI Logic Update
+                if (this.isBot) {
+                    this.updateAI();
+                }
+            }
+
+            trimPath() {
+                let totalLength = 0;
+                let cutoffIndex = -1;
+                let remainder = 0;
+
+                // Iterate backwards from head to tail calculating accumulated path length
+                for (let i = this.path.length - 1; i > 0; i--) {
+                    const p1 = this.path[i];
+                    const p2 = this.path[i - 1];
+                    const dist = Math.hypot(p1.x - p2.x, p1.y - p2.y);
+                    
+                    if (totalLength + dist > this.length) {
+                        cutoffIndex = i - 1;
+                        remainder = (totalLength + dist) - this.length;
+                        break;
+                    }
+                    totalLength += dist;
+                }
+
+                if (cutoffIndex >= 0) {
+                    // Remove older path points
+                    this.path.splice(0, cutoffIndex);
+                    // Adjust oldest remaining point
+                    const pOld = this.path[0];
+                    const pNext = this.path[1];
+                    if (pOld && pNext) {
+                        const angle = Math.atan2(pNext.y - pOld.y, pNext.x - pOld.x);
+                        this.path[0] = {
+                            x: pNext.x - Math.cos(angle) * (Math.hypot(pNext.x - pOld.x, pNext.y - pOld.y) - remainder),
+                            y: pNext.y - Math.sin(angle) * (Math.hypot(pNext.x - pOld.x, pNext.y - pOld.y) - remainder)
+                        };
+                    }
+                }
+            }
+
+            setDirection(dx, dy) {
+                // Prevent reversing directly onto self
+                if (dx !== 0 && this.dir.x === -dx) return;
+                if (dy !== 0 && this.dir.y === -dy) return;
+                this.nextDir = { x: dx, y: dy };
+            }
+
+            die(reason) {
+                if (this.dead) return;
+                this.dead = true;
+
+                // Spawn collectible energy sparks along line body
+                for (let i = 0; i < this.path.length - 1; i++) {
+                    const p1 = this.path[i];
+                    const p2 = this.path[i + 1];
+                    const dist = Math.hypot(p2.x - p1.x, p2.y - p1.y);
+                    const steps = Math.floor(dist / 18);
+                    
+                    for (let s = 0; s < steps; s++) {
+                        const t = s / steps;
+                        const ox = p1.x + (p2.x - p1.x) * t + (Math.random() - 0.5) * 10;
+                        const oy = p1.y + (p2.y - p1.y) * t + (Math.random() - 0.5) * 10;
+                        foodOrbs.push({
+                            x: ox,
+                            y: oy,
+                            val: Math.floor(Math.random() * 4) + 3,
+                            color: this.colorHex
+                        });
+                    }
+                }
+
+                // Death Particle Explosion at head
+                spawnExplosion(this.x, this.y, this.colorHex, 35);
+
+                if (this === localPlayer) {
+                    showGameOver(reason);
+                }
+            }
+
+            // --- STREAMING_CHUNK:AI Bot Intelligence Algorithms... ---
+            updateAI() {
+                this.aiTargetDirTimer++;
+
+                // Raycast ahead for obstacles
+                const lookAheadDist = 60 + (this.isBoosting ? 40 : 0);
+                const aheadX = this.x + this.dir.x * lookAheadDist;
+                const aheadY = this.y + this.dir.y * lookAheadDist;
+
+                let obstacleDetected = false;
+
+                // 1. Check Wall Boundaries
+                if (aheadX < 100 || aheadX > WORLD_SIZE - 100 || aheadY < 100 || aheadY > WORLD_SIZE - 100) {
+                    obstacleDetected = true;
+                }
+
+                // 2. Check Line Bodies Collision
+                if (!obstacleDetected) {
+                    for (let p of players.values()) {
+                        if (p.dead) continue;
+                        if (checkLineIntersectionWithCircle(aheadX, aheadY, 20, p.path, p === this)) {
+                            obstacleDetected = true;
+                            break;
+                        }
+                    }
+                }
+
+                // Pick safe turn direction if obstacle ahead or random turn interval
+                if (obstacleDetected || (this.aiTargetDirTimer > 120 && Math.random() < 0.05)) {
+                    this.aiTargetDirTimer = 0;
+                    const possibleDirs = this.dir.x !== 0 
+                        ? [{ x: 0, y: 1 }, { x: 0, y: -1 }] 
+                        : [{ x: 1, y: 0 }, { x: -1, y: 0 }];
+
+                    // Filter direction options that are clear of obstacles
+                    const safeDirs = possibleDirs.filter(d => {
+                        const testX = this.x + d.x * (lookAheadDist + 30);
+                        const testY = this.y + d.y * (lookAheadDist + 30);
+                        
+                        // Bounds check
+                        if (testX < 100 || testX > WORLD_SIZE - 100 || testY < 100 || testY > WORLD_SIZE - 100) return false;
+
+                        // Lines check
+                        for (let p of players.values()) {
+                            if (p.dead) continue;
+                            if (checkLineIntersectionWithCircle(testX, testY, 25, p.path, p === this)) {
+                                return false;
+                            }
+                        }
+                        return true;
+                    });
+
+                    if (safeDirs.length > 0) {
+                        const chosen = safeDirs[Math.floor(Math.random() * safeDirs.length)];
+                        this.setDirection(chosen.x, chosen.y);
+                    } else if (possibleDirs.length > 0) {
+                        this.setDirection(possibleDirs[0].x, possibleDirs[0].y);
+                    }
+                }
+            }
+        }
+
+        // --- STREAMING_CHUNK:Collision Detection & Boosting Algorithms... ---
+
+        /**
+         * Checks if a circle intersects with any line segments of player paths
+         */
+        function checkLineIntersectionWithCircle(cx, cy, radius, pathPoints, isSelf = false) {
+            // If self, skip last 2 segments near head
+            const maxIdx = isSelf ? pathPoints.length - 3 : pathPoints.length - 1;
+            for (let i = 0; i < maxIdx; i++) {
+                const p1 = pathPoints[i];
+                const p2 = pathPoints[i + 1];
+                if (!p1 || !p2) continue;
+
+                const distSq = distToSegmentSquared({ x: cx, y: cy }, p1, p2);
+                if (distSq < radius * radius) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        // Math Helper: Distance squared from point to line segment
+        function distToSegmentSquared(p, v, w) {
+            const l2 = (w.x - v.x) ** 2 + (w.y - v.y) ** 2;
+            if (l2 === 0) return (p.x - v.x) ** 2 + (p.y - v.y) ** 2;
+            let t = ((p.x - v.x) * (w.x - v.x) + (p.y - v.y) * (w.y - v.y)) / l2;
+            t = Math.max(0, Math.min(1, t));
+            return (p.x - (v.x + t * (w.x - v.x))) ** 2 + (p.y - (v.y + t * (w.y - v.y))) ** 2;
+        }
+
+        /**
+         * Powerline Boosting Mechanic:
+         * Driving parallel alongside another line's body grants electricity boost!
+         */
+        function updateBoostingMechanic() {
+            for (let p of players.values()) {
+                if (p.dead) continue;
+                let boosting = false;
+
+                for (let other of players.values()) {
+                    if (other.dead || other === p) continue;
+
+                    // Check distance from player head to other player's path
+                    for (let i = 0; i < other.path.length - 1; i++) {
+                        const p1 = other.path[i];
+                        const p2 = other.path[i + 1];
+                        const distSq = distToSegmentSquared({ x: p.x, y: p.y }, p1, p2);
+
+                        if (distSq < BOOST_DISTANCE * BOOST_DISTANCE) {
+                            boosting = true;
+
+                            // Spawn electric spark particles between lines
+                            if (Math.random() < 0.4) {
+                                particles.push({
+                                    x: p.x + (Math.random() - 0.5) * 10,
+                                    y: p.y + (Math.random() - 0.5) * 10,
+                                    vx: (Math.random() - 0.5) * 3,
+                                    vy: (Math.random() - 0.5) * 3,
+                                    life: 1.0,
+                                    color: "#fde047"
+                                });
+                            }
+                            break;
+                        }
+                    }
+                    if (boosting) break;
+                }
+
+                p.isBoosting = boosting;
+                p.boostCharge = boosting 
+                    ? Math.min(1.0, p.boostCharge + 0.1) 
+                    : Math.max(0.0, p.boostCharge - 0.05);
+            }
+        }
+
+        /**
+         * Global Collision Engine for head collisions
+         */
+        function checkCollisions() {
+            for (let player of players.values()) {
+                if (player.dead) continue;
+
+                // 1. Head vs Other Lines Body / Self Body
+                for (let other of players.values()) {
+                    if (other.dead) continue;
+                    const isSelf = (player === other);
+
+                    if (checkLineIntersectionWithCircle(player.x, player.y, LINE_WIDTH / 2, other.path, isSelf)) {
+                        if (isSelf) {
+                            player.die("You drove into your own electrical body line.");
+                        } else {
+                            player.die(`Destroyed by colliding into ${other.name}'s powerline.`);
+                            if (other === localPlayer) killsCount++;
+                        }
+                        break;
+                    }
+                }
+
+                if (player.dead) continue;
+
+                // 2. Head vs Power Orbs / Food
+                for (let i = foodOrbs.length - 1; i >= 0; i--) {
+                    const orb = foodOrbs[i];
+                    const distSq = (player.x - orb.x) ** 2 + (player.y - orb.y) ** 2;
+                    const eatDist = (LINE_WIDTH + 8) ** 2;
+
+                    if (distSq < eatDist) {
+                        player.length += orb.val * 2.5; // Grow line
+                        foodOrbs.splice(i, 1);
+
+                        // Collection spark effect
+                        if (player === localPlayer && Math.random() < 0.3) {
+                            particles.push({
+                                x: orb.x, y: orb.y,
+                                vx: (Math.random() - 0.5) * 2,
+                                vy: (Math.random() - 0.5) * 2,
+                                life: 0.6,
+                                color: orb.color
+                            });
+                        }
+                    }
+                }
+            }
+        }
+
+        // Spawns power orbs randomly across arena to maintain minimum count
+        function maintainFoodSupply() {
+            while (foodOrbs.length < FOOD_COUNT) {
+                foodOrbs.push({
+                    x: Math.random() * (WORLD_SIZE - 200) + 100,
+                    y: Math.random() * (WORLD_SIZE - 200) + 100,
+                    val: Math.floor(Math.random() * 3) + 2,
+                    color: LINE_COLORS[Math.floor(Math.random() * LINE_COLORS.length)].hex
+                });
+            }
+        }
+
+        // Particle explosion generator on line death
+        function spawnExplosion(x, y, color, count = 25) {
+            for (let i = 0; i < count; i++) {
+                const angle = Math.random() * Math.PI * 2;
+                const speed = Math.random() * 7 + 2;
+                particles.push({
+                    x: x,
+                    y: y,
+                    vx: Math.cos(angle) * speed,
+                    vy: Math.sin(angle) * speed,
+                    life: 1.0,
+                    color: color
+                });
+            }
+        }
+
+        // --- STREAMING_CHUNK:Rendering Engine & Visual Effects... ---
+
+        function render() {
+            // Clear screen
+            ctx.fillStyle = "#030712";
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            if (!localPlayer) return;
+
+            // Update camera centered on local player
+            camera.viewportW = canvas.width;
+            camera.viewportH = canvas.height;
+            camera.x = localPlayer.x - camera.viewportW / 2;
+            camera.y = localPlayer.y - camera.viewportH / 2;
+
+            ctx.save();
+            // Translate for camera relative space
+            ctx.translate(-camera.x, -camera.y);
+
+            // 1. Draw Grid Background
+            renderGrid();
+
+            // 2. Draw Arena Boundaries
+            renderWorldBounds();
+
+            // 3. Draw Power Orbs
+            renderPowerOrbs();
+
+            // 4. Draw Player & Bot Lines
+            renderLines();
+
+            // 5. Draw Particle Sparks
+            renderParticles();
+
+            ctx.restore();
+
+            // 6. Render Minimap & HUD
+            renderMinimap();
+            updateHUD();
+        }
+
+        function renderGrid() {
+            const gridSize = 100;
+            const startX = Math.floor(camera.x / gridSize) * gridSize;
+            const endX = startX + camera.viewportW + gridSize;
+            const startY = Math.floor(camera.y / gridSize) * gridSize;
+            const endY = startY + camera.viewportH + gridSize;
+
+            ctx.strokeStyle = "rgba(30, 41, 59, 0.4)";
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+
+            for (let x = startX; x <= endX; x += gridSize) {
+                ctx.moveTo(x, startY);
+                ctx.lineTo(x, endY);
+            }
+            for (let y = startY; y <= endY; y += gridSize) {
+                ctx.moveTo(startX, y);
+                ctx.lineTo(endX, y);
+            }
+            ctx.stroke();
+        }
+
+        function renderWorldBounds() {
+            ctx.strokeStyle = "#ef4444";
+            ctx.shadowColor = "#ef4444";
+            ctx.shadowBlur = 15;
+            ctx.lineWidth = 6;
+            ctx.strokeRect(0, 0, WORLD_SIZE, WORLD_SIZE);
+            ctx.shadowBlur = 0;
+        }
+
+        function renderPowerOrbs() {
+            for (let orb of foodOrbs) {
+                // View frustum culling
+                if (orb.x < camera.x - 20 || orb.x > camera.x + camera.viewportW + 20 ||
+                    orb.y < camera.y - 20 || orb.y > camera.y + camera.viewportH + 20) continue;
+
+                ctx.save();
+                ctx.fillStyle = orb.color;
+                ctx.shadowColor = orb.color;
+                ctx.shadowBlur = 8;
+
+                ctx.beginPath();
+                ctx.arc(orb.x, orb.y, orb.val + 2, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Core highlight
+                ctx.fillStyle = "#ffffff";
+                ctx.beginPath();
+                ctx.arc(orb.x, orb.y, (orb.val + 2) * 0.4, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.restore();
+            }
+        }
+
+        function renderLines() {
+            for (let player of players.values()) {
+                if (player.dead || player.path.length < 2) continue;
+
+                ctx.save();
+                
+                // Outer electric glow line
+                ctx.strokeStyle = player.isBoosting ? "#fde047" : player.glowHex;
+                ctx.shadowColor = player.isBoosting ? "#fde047" : player.colorHex;
+                ctx.shadowBlur = player.isBoosting ? 20 : 12;
+                ctx.lineWidth = player.isBoosting ? LINE_WIDTH + 4 : LINE_WIDTH;
+                ctx.lineCap = "round";
+                ctx.lineJoin = "round";
+
+                ctx.beginPath();
+                ctx.moveTo(player.path[0].x, player.path[0].y);
+                for (let i = 1; i < player.path.length; i++) {
+                    ctx.lineTo(player.path[i].x, player.path[i].y);
+                }
+                ctx.stroke();
+
+                // Inner core white hot line
+                ctx.strokeStyle = "#ffffff";
+                ctx.lineWidth = LINE_WIDTH * 0.4;
+                ctx.shadowBlur = 0;
+                ctx.stroke();
+
+                // Head glow marker
+                const head = player.path[player.path.length - 1];
+                ctx.fillStyle = "#ffffff";
+                ctx.beginPath();
+                ctx.arc(head.x, head.y, LINE_WIDTH * 0.7, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Player name tag
+                ctx.font = "bold 12px Orbitron, sans-serif";
+                ctx.fillStyle = "rgba(255, 255, 255, 0.85)";
+                ctx.textAlign = "center";
+                ctx.fillText(player.name, head.x, head.y - 14);
+
+                ctx.restore();
+            }
+        }
+
+        function renderParticles() {
+            for (let i = particles.length - 1; i >= 0; i--) {
+                const p = particles[i];
+                p.x += p.vx;
+                p.y += p.vy;
+                p.life -= 0.025;
+
+                if (p.life <= 0) {
+                    particles.splice(i, 1);
+                    continue;
+                }
+
+                ctx.save();
+                ctx.globalAlpha = p.life;
+                ctx.fillStyle = p.color;
+                ctx.shadowColor = p.color;
+                ctx.shadowBlur = 6;
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, 3 * p.life, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+            }
+        }
+
+        function renderMinimap() {
+            minimapCtx.fillStyle = "rgba(3, 7, 18, 0.9)";
+            minimapCtx.fillRect(0, 0, minimapCanvas.width, minimapCanvas.height);
+
+            const scale = minimapCanvas.width / WORLD_SIZE;
+
+            // Draw player dots on minimap
+            for (let player of players.values()) {
+                if (player.dead) continue;
+                minimapCtx.fillStyle = (player === localPlayer) ? "#ffffff" : player.colorHex;
+                minimapCtx.beginPath();
+                minimapCtx.arc(player.x * scale, player.y * scale, player === localPlayer ? 3 : 2, 0, Math.PI * 2);
+                minimapCtx.fill();
+            }
+        }
+
+        // --- STREAMING_CHUNK:UI Overlay Updates & Leaderboard... ---
+
+        function updateHUD() {
+            if (!localPlayer) return;
+
+            // Length score
+            document.getElementById("hudScore").innerText = `${Math.floor(localPlayer.length)}m`;
+
+            // Boost meter bar update
+            const boostFill = document.getElementById("boostFill");
+            const boostText = document.getElementById("hudBoostText");
+            const boostGlowBar = document.getElementById("boostGlowBar");
+
+            if (localPlayer.isBoosting) {
+                boostFill.style.width = "100%";
+                boostText.innerText = "SUPERCHARGED!";
+                boostText.className = "text-sm font-bold text-yellow-400 animate-pulse";
+                boostGlowBar.className = "w-full h-3 bg-slate-800/80 rounded-full overflow-hidden border border-yellow-400 shadow-[0_0_15px_rgba(250,204,21,0.6)]";
+            } else {
+                boostFill.style.width = "0%";
+                boostText.innerText = "Normal";
+                boostText.className = "text-sm font-bold text-slate-400";
+                boostGlowBar.className = "w-full h-3 bg-slate-800/80 rounded-full overflow-hidden border border-slate-600/50 p-0.5";
+            }
+
+            // Update Leaderboard top 5
+            const sorted = Array.from(players.values())
+                .filter(p => !p.dead)
+                .sort((a, b) => b.length - a.length);
+
+            document.getElementById("playerCountText").innerText = `${sorted.length} Active Lines`;
+
+            const leaderboardList = document.getElementById("leaderboardList");
+            leaderboardList.innerHTML = "";
+
+            sorted.slice(0, 5).forEach((p, idx) => {
+                const row = document.createElement("div");
+                row.className = `flex justify-between items-center ${p === localPlayer ? 'text-cyan-300 font-bold' : 'text-slate-300'}`;
+                row.innerHTML = `
+                    <div class="truncate max-w-[120px]">
+                        <span class="text-slate-500 mr-1 font-mono">${idx + 1}.</span>
+                        <span style="color:${p.colorHex}">${p.name}</span>
+                    </div>
+                    <span class="font-mono text-xs">${Math.floor(p.length)}m</span>
+                `;
+                leaderboardList.appendChild(row);
+            });
+        }
+
+        function showGameOver(reason) {
+            isPlaying = false;
+            document.getElementById("deathReason").innerText = reason;
+            document.getElementById("finalScore").innerText = `${Math.floor(localPlayer ? localPlayer.length : 0)}m`;
+            document.getElementById("finalKills").innerText = killsCount;
+            document.getElementById("gameOverOverlay").classList.remove("hidden");
+        }
+
+        // --- STREAMING_CHUNK:PeerJS WebRTC Serverless Multiplayer Logic... ---
+
+        function initPeerJS() {
+            // Initialize PeerJS client with random ID
+            peer = new Peer();
+
+            peer.on('open', (id) => {
+                myPeerId = id;
+                console.log("PeerJS Connected. ID:", id);
+            });
+
+            // Handle incoming connections if acting as host
+            peer.on('connection', (conn) => {
+                clientConns.push(conn);
+                setupHostConnListeners(conn);
+            });
+
+            peer.on('error', (err) => {
+                console.error("PeerJS Error:", err);
+            });
+        }
+
+        function setupHostRoom() {
+            if (!peer || !myPeerId) {
+                initPeerJS();
+                setTimeout(setupHostRoom, 500);
+                return;
+            }
+
+            isHost = true;
+            document.getElementById("myRoomCode").innerText = myPeerId;
+            document.getElementById("hostRoomInfo").classList.remove("hidden");
+            document.getElementById("hudRoomCode").innerText = `HOST: ${myPeerId.substring(0, 6)}...`;
+        }
+
+        function joinRoom(roomCode) {
+            if (!peer) initPeerJS();
+            
+            isHost = false;
+            hostConn = peer.connect(roomCode.trim());
+
+            hostConn.on('open', () => {
+                console.log("Successfully connected to Host room:", roomCode);
+                document.getElementById("hudRoomCode").innerText = `CONNECTED: ${roomCode.substring(0, 6)}...`;
+                
+                // Send join signal
+                hostConn.send({
+                    type: "JOIN",
+                    name: document.getElementById("playerNameInput").value || "CyberLine",
+                    color: selectedColor
+                });
+
+                startGame();
+            });
+
+            hostConn.on('data', (data) => {
+                handleClientReceivedData(data);
+            });
+        }
+
+        function setupHostConnListeners(conn) {
+            conn.on('data', (data) => {
+                if (data.type === "JOIN") {
+                    // Create multiplayer player instance on host
+                    const newPlayer = new PlayerLine(
+                        conn.peer,
+                        data.name,
+                        data.color.hex,
+                        data.color.glow,
+                        Math.random() * (WORLD_SIZE - 400) + 200,
+                        Math.random() * (WORLD_SIZE - 400) + 200,
+                        false
+                    );
+                    players.set(conn.peer, newPlayer);
+                } else if (data.type === "INPUT") {
+                    const p = players.get(conn.peer);
+                    if (p) p.setDirection(data.dir.x, data.dir.y);
+                }
+            });
+        }
+
+        function broadcastGameState() {
+            if (!isHost || clientConns.length === 0) return;
+
+            // Serialize network players data
+            const snapshot = [];
+            for (let p of players.values()) {
+                snapshot.push({
+                    id: p.id,
+                    name: p.name,
+                    colorHex: p.colorHex,
+                    glowHex: p.glowHex,
+                    x: p.x,
+                    y: p.y,
+                    path: p.path,
+                    length: p.length,
+                    isBoosting: p.isBoosting,
+                    dead: p.dead
+                });
+            }
+
+            const state = {
+                type: "STATE",
+                players: snapshot,
+                food: foodOrbs.map(f => ({ x: Math.floor(f.x), y: Math.floor(f.y), val: f.val, color: f.color }))
+            };
+
+            for (let conn of clientConns) {
+                if (conn.open) conn.send(state);
+            }
+        }
+
+        function handleClientReceivedData(data) {
+            if (data.type === "STATE") {
+                // Client synchronizes players from host snapshot
+                for (let pData of data.players) {
+                    let p = players.get(pData.id);
+                    if (!p) {
+                        p = new PlayerLine(pData.id, pData.name, pData.colorHex, pData.glowHex, pData.x, pData.y, false);
+                        players.set(pData.id, p);
+                    }
+                    p.x = pData.x;
+                    p.y = pData.y;
+                    p.path = pData.path;
+                    p.length = pData.length;
+                    p.isBoosting = pData.isBoosting;
+                    p.dead = pData.dead;
+
+                    if (pData.id === peer.id) {
+                        localPlayer = p;
+                    }
+                }
+                foodOrbs = data.food;
+            }
+        }
+
+        // --- STREAMING_CHUNK:Game Engine Loop & Lifecycle... ---
+
+        let lastTime = performance.now();
+
+        function gameLoop(now) {
+            const dt = Math.min(now - lastTime, 50); // Cap delta time for smooth step
+            lastTime = now;
+
+            if (isPlaying) {
+                if (isHost) {
+                    // Update all AI bots & Players on host
+                    for (let p of players.values()) {
+                        p.update(dt);
+                    }
+                    updateBoostingMechanic();
+                    checkCollisions();
+                    maintainFoodSupply();
+                    spawnBotsIfEmpty();
+                    broadcastGameState();
+                } else {
+                    // Client side interpolation / local prediction update
+                    if (localPlayer) localPlayer.update(dt);
+                }
+
+                render();
+            }
+
+            requestAnimationFrame(gameLoop);
+        }
+
+        function spawnBotsIfEmpty() {
+            if (!isHost) return;
+            let activeBots = 0;
+            for (let p of players.values()) {
+                if (p.isBot && !p.dead) activeBots++;
+            }
+
+            const botNames = ["VoltBot", "CyberPhantom", "GridRider", "NeonBlade", "ApexPulse", "CircuitBreaker", "ZeroK", "ByteRacer"];
+
+            while (activeBots < MAX_BOTS) {
+                const id = "bot_" + Math.random().toString(36).substr(2, 6);
+                const color = LINE_COLORS[Math.floor(Math.random() * LINE_COLORS.length)];
+                const botName = botNames[Math.floor(Math.random() * botNames.length)] + "_" + Math.floor(Math.random() * 99);
+                
+                const bot = new PlayerLine(
+                    id,
+                    botName,
+                    color.hex,
+                    color.glow,
+                    Math.random() * (WORLD_SIZE - 400) + 200,
+                    Math.random() * (WORLD_SIZE - 400) + 200,
+                    true
+                );
+
+                // Initial direction
+                const dirs = [{x:1, y:0}, {x:-1, y:0}, {x:0, y:1}, {x:0, y:-1}];
+                bot.dir = dirs[Math.floor(Math.random() * dirs.length)];
+                bot.nextDir = { ...bot.dir };
+
+                players.set(id, bot);
+                activeBots++;
+            }
+        }
+
+        function startGame() {
+            players.clear();
+            foodOrbs = [];
+            particles = [];
+            killsCount = 0;
+
+            const playerName = document.getElementById("playerNameInput").value || "CyberLine";
+
+            if (isHost) {
+                const localId = peer ? peer.id : "local_player";
+                localPlayer = new PlayerLine(
+                    localId,
+                    playerName,
+                    selectedColor.hex,
+                    selectedColor.glow,
+                    WORLD_SIZE / 2,
+                    WORLD_SIZE / 2,
+                    false
+                );
+                players.set(localId, localPlayer);
+                maintainFoodSupply();
+                spawnBotsIfEmpty();
+            }
+
+            document.getElementById("menuOverlay").classList.add("hidden");
+            document.getElementById("gameOverOverlay").classList.add("hidden");
+            document.getElementById("hudOverlay").classList.remove("hidden");
+
+            isPlaying = true;
+        }
+
+        // --- STREAMING_CHUNK:Event Listeners & Controls Setup... ---
+
+        window.onload = function() {
+            canvas = document.getElementById("gameCanvas");
+            ctx = canvas.getContext("2d");
+            minimapCanvas = document.getElementById("minimapCanvas");
+            minimapCtx = minimapCanvas.getContext("2d");
+
+            // Handle Resize
+            function handleResize() {
+                canvas.width = window.innerWidth;
+                canvas.height = window.innerHeight;
+            }
+            window.addEventListener("resize", handleResize);
+            handleResize();
+
+            // Populate Color Picker UI
+            const colorPickerContainer = document.getElementById("colorPicker");
+            LINE_COLORS.forEach((col, idx) => {
+                const btn = document.createElement("button");
+                btn.className = `w-8 h-8 rounded-full border-2 transition-all transform hover:scale-110 ${idx === 0 ? 'border-white scale-110 shadow-[0_0_10px_white]' : 'border-transparent'}`;
+                btn.style.backgroundColor = col.hex;
+                btn.onclick = () => {
+                    selectedColor = col;
+                    Array.from(colorPickerContainer.children).forEach(c => {
+                        c.className = "w-8 h-8 rounded-full border-2 transition-all transform hover:scale-110 border-transparent";
+                    });
+                    btn.className = "w-8 h-8 rounded-full border-2 transition-all transform hover:scale-110 border-white scale-110 shadow-[0_0_10px_white]";
+                };
+                colorPickerContainer.appendChild(btn);
+            });
+
+            // Keyboard Controls
+            window.addEventListener("keydown", (e) => {
+                if (!localPlayer || localPlayer.dead) return;
+
+                const key = e.key.toLowerCase();
+                if (key === "arrowup" || key === "w") {
+                    localPlayer.setDirection(0, -1);
+                    sendInputToHost(0, -1);
+                } else if (key === "arrowdown" || key === "s") {
+                    localPlayer.setDirection(0, 1);
+                    sendInputToHost(0, 1);
+                } else if (key === "arrowleft" || key === "a") {
+                    localPlayer.setDirection(-1, 0);
+                    sendInputToHost(-1, 0);
+                } else if (key === "arrowright" || key === "d") {
+                    localPlayer.setDirection(1, 0);
+                    sendInputToHost(1, 0);
+                }
+            });
+
+            // Mobile D-Pad Listeners
+            const bindBtn = (id, dx, dy) => {
+                const btn = document.getElementById(id);
+                btn.addEventListener("touchstart", (e) => {
+                    e.preventDefault();
+                    if (localPlayer) {
+                        localPlayer.setDirection(dx, dy);
+                        sendInputToHost(dx, dy);
+                    }
+                });
+                btn.addEventListener("click", () => {
+                    if (localPlayer) {
+                        localPlayer.setDirection(dx, dy);
+                        sendInputToHost(dx, dy);
+                    }
+                });
+            };
+
+            bindBtn("btnUp", 0, -1);
+            bindBtn("btnDown", 0, 1);
+            bindBtn("btnLeft", -1, 0);
+            bindBtn("btnRight", 1, 0);
+
+            function sendInputToHost(dx, dy) {
+                if (!isHost && hostConn && hostConn.open) {
+                    hostConn.send({ type: "INPUT", dir: { x: dx, y: dy } });
+                }
+            }
+
+            // UI Button Bindings
+            document.getElementById("btnPlaySolo").onclick = () => {
+                isHost = true;
+                startGame();
+            };
+
+            document.getElementById("btnRespawn").onclick = () => {
+                startGame();
+            };
+
+            document.getElementById("toggleMultiplayerBtn").onclick = () => {
+                const section = document.getElementById("multiplayerSection");
+                const chevron = document.getElementById("mpChevron");
+                section.classList.toggle("hidden");
+                chevron.classList.toggle("rotate-180");
+            };
+
+            document.getElementById("btnHostRoom").onclick = () => {
+                setupHostRoom();
+            };
+
+            document.getElementById("btnJoinRoom").onclick = () => {
+                const code = document.getElementById("joinRoomInput").value;
+                if (code) joinRoom(code);
+            };
+
+            // Touch Swipe Gestures Alternative Controls
+            let touchStartX = 0;
+            let touchStartY = 0;
+            window.addEventListener("touchstart", (e) => {
+                touchStartX = e.touches[0].clientX;
+                touchStartY = e.touches[0].clientY;
+            }, { passive: true });
+
+            window.addEventListener("touchend", (e) => {
+                if (!localPlayer || localPlayer.dead) return;
+                const dx = e.changedTouches[0].clientX - touchStartX;
+                const dy = e.changedTouches[0].clientY - touchStartY;
+                if (Math.abs(dx) > 30 || Math.abs(dy) > 30) {
+                    if (Math.abs(dx) > Math.abs(dy)) {
+                        localPlayer.setDirection(dx > 0 ? 1 : -1, 0);
+                        sendInputToHost(dx > 0 ? 1 : -1, 0);
+                    } else {
+                        localPlayer.setDirection(0, dy > 0 ? 1 : -1);
+                        sendInputToHost(0, dy > 0 ? 1 : -1);
+                    }
+                }
+            }, { passive: true });
+
+            // Initialize PeerJS early
+            initPeerJS();
+
+            // Start Main Loop
+            requestAnimationFrame(gameLoop);
+        };
+    </script>
+</body>
+</html>
