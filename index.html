@@ -329,7 +329,7 @@
 
             <div class="status-text">
                 <div class="status-dot" id="status-dot"></div>
-                <span id="status-msg">Traversing STUN / Connecting...</span>
+                <span id="status-msg">Searching for active game...</span>
             </div>
         </div>
     </div>
@@ -374,15 +374,24 @@
         const BOT_TARGET_COUNT = 8;
         const HOST_ROOM_ID = 'powerline-global-v2-room';
 
-        // STUN / ICE Configuration for NAT & VPN Traversal
+        // STUN + TURN relay configuration for WebRTC over HTTPS & VPNs
         const PEER_CONFIG = {
+            secure: true,
+            port: 443,
             config: {
                 iceServers: [
                     { urls: 'stun:stun.l.google.com:19302' },
                     { urls: 'stun:stun1.l.google.com:19302' },
-                    { urls: 'stun:stun2.l.google.com:19302' },
-                    { urls: 'stun:stun3.l.google.com:19302' },
-                    { urls: 'stun:stun4.l.google.com:19302' }
+                    {
+                        urls: 'turn:openrelay.metered.ca:80',
+                        username: 'openrelay',
+                        credential: 'openrelay'
+                    },
+                    {
+                        urls: 'turn:openrelay.metered.ca:443',
+                        username: 'openrelay',
+                        credential: 'openrelay'
+                    }
                 ]
             }
         };
@@ -686,7 +695,7 @@
 
             peer.on('open', (id) => {
                 myId = id;
-                document.getElementById('status-msg').innerText = 'Searching for active global host...';
+                document.getElementById('status-msg').innerText = 'Searching for active host...';
                 attemptToJoinHost();
             });
 
@@ -707,7 +716,7 @@
                 connected = true;
                 isHost = false;
                 hostConnection = conn;
-                document.getElementById('status-msg').innerText = 'Connected to Host (Multiplayer Active)!';
+                document.getElementById('status-msg').innerText = 'Connected to Host!';
                 document.getElementById('status-dot').style.backgroundColor = '#39ff14';
                 document.getElementById('status-dot').style.boxShadow = '0 0 8px #39ff14';
             });
@@ -738,7 +747,7 @@
             peer.on('open', (id) => {
                 myId = id;
                 isHost = true;
-                document.getElementById('status-msg').innerText = 'Hosting Global Room (VPN Relays Active)';
+                document.getElementById('status-msg').innerText = 'Hosting Game (TURN Relays Active)';
                 document.getElementById('status-dot').style.backgroundColor = '#39ff14';
                 document.getElementById('status-dot').style.boxShadow = '0 0 8px #39ff14';
 
