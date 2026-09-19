@@ -2,14 +2,15 @@
 <html lang="en" class="dark">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Powerline.io</title>
-    <!-- Tailwind CSS -->
+    <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- PeerJS for P2P networking -->
-    <script src="https://unpkg.com/peerjs@1.4.7/dist/peerjs.min.js"></script>
-    <!-- FontAwesome for icons -->
+    <!-- PeerJS CDN -->
+    <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+    <!-- FontAwesome CDN -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
     <script>
         tailwind.config = {
             darkMode: 'class',
@@ -17,40 +18,54 @@
                 extend: {
                     colors: {
                         cyber: {
-                            bg: '#030712',
+                            bg: '#02040a',
                             cyan: '#00f3ff',
                             pink: '#ff0055',
                             yellow: '#fcee0a',
-                            dark: '#0a0f1d'
+                            green: '#00ff66',
+                            dark: '#080d1a'
                         }
                     }
                 }
             }
         }
     </script>
+    
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap');
+        
+        * {
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
         body {
-            font-family: 'Orbitron', sans-serif;
-            background-color: #030712;
+            font-family: 'Orbitron', monospace;
+            background-color: #02040a;
             color: #f3f4f6;
             overflow: hidden;
-            user-select: none;
+            touch-action: none;
         }
+
         .neon-glow-cyan {
-            text-shadow: 0 0 10px rgba(0, 243, 255, 0.8), 0 0 20px rgba(0, 243, 255, 0.4);
+            text-shadow: 0 0 8px rgba(0, 243, 255, 0.8), 0 0 16px rgba(0, 243, 255, 0.4);
         }
+
         .neon-glow-pink {
-            text-shadow: 0 0 10px rgba(255, 0, 85, 0.8), 0 0 20px rgba(255, 0, 85, 0.4);
+            text-shadow: 0 0 8px rgba(255, 0, 85, 0.8), 0 0 16px rgba(255, 0, 85, 0.4);
         }
+
         .neon-border-cyan {
-            box-shadow: 0 0 15px rgba(0, 243, 255, 0.4), inset 0 0 15px rgba(0, 243, 255, 0.2);
+            box-shadow: 0 0 15px rgba(0, 243, 255, 0.3), inset 0 0 15px rgba(0, 243, 255, 0.15);
         }
+
         .cyber-panel {
-            background: rgba(10, 15, 29, 0.85);
-            backdrop-filter: blur(12px);
+            background: rgba(8, 13, 26, 0.85);
+            backdrop-filter: blur(10px);
             border: 1px solid rgba(0, 243, 255, 0.3);
         }
+
         canvas {
             display: block;
             touch-action: none;
@@ -59,79 +74,83 @@
 </head>
 <body class="relative w-screen h-screen overflow-hidden bg-cyber-bg">
 
-    <!-- Game Canvas -->
+    <!-- Main Game Canvas -->
     <canvas id="gameCanvas" class="absolute inset-0 w-full h-full cursor-crosshair"></canvas>
 
-    <!-- HUD Overlay -->
-    <div id="hud" class="absolute inset-0 pointer-events-none flex flex-col justify-between p-6 z-20">
-        <!-- Top Bar -->
+    <!-- In-Game HUD -->
+    <div id="hud" class="absolute inset-0 pointer-events-none flex flex-col justify-between p-4 md:p-6 z-20">
+        <!-- Top HUD Row -->
         <div class="flex justify-between items-start">
-            <div class="cyber-panel px-6 py-4 rounded-xl border border-cyber-cyan/40 neon-border-cyan">
-                <div class="text-xs text-cyber-cyan font-semibold tracking-widest uppercase flex items-center gap-2">
-                    <span>Score</span>
-                    <span id="roleBadge" class="text-[10px] px-2 py-0.5 rounded bg-cyber-cyan/20 border border-cyber-cyan/40 text-cyber-cyan">SOLO / LOCAL</span>
+            <!-- Player Stats Box -->
+            <div class="cyber-panel px-5 py-3 rounded-xl border border-cyber-cyan/40 neon-border-cyan">
+                <div class="text-[10px] text-cyber-cyan font-bold tracking-widest uppercase flex items-center gap-2">
+                    <span>SCORE</span>
+                    <span id="roleBadge" class="text-[9px] px-1.5 py-0.5 rounded bg-cyber-cyan/20 border border-cyber-cyan/40 text-cyber-cyan">INIT...</span>
                 </div>
-                <div id="hudScore" class="text-3xl font-black text-white neon-glow-cyan">0</div>
-                <div class="mt-2 text-xs text-gray-400">Length: <span id="hudLength" class="text-cyber-yellow font-bold">50</span></div>
+                <div id="hudScore" class="text-2xl md:text-3xl font-black text-white neon-glow-cyan">0</div>
+                <div class="mt-1 text-xs text-gray-400">Length: <span id="hudLength" class="text-cyber-yellow font-bold">50</span></div>
             </div>
 
             <!-- Minimap -->
-            <div class="cyber-panel p-2 rounded-xl border border-cyber-cyan/40 w-40 h-40 relative overflow-hidden hidden sm:block">
-                <div class="absolute top-1 left-1 text-[10px] text-cyber-cyan tracking-wider z-10">GRID RADAR</div>
+            <div class="cyber-panel p-1.5 rounded-xl border border-cyber-cyan/40 w-32 h-32 md:w-40 md:h-40 relative overflow-hidden hidden sm:block">
+                <div class="absolute top-1 left-1.5 text-[9px] text-cyber-cyan tracking-wider z-10 font-bold">RADAR</div>
                 <canvas id="minimapCanvas" class="w-full h-full rounded"></canvas>
             </div>
 
             <!-- Leaderboard -->
-            <div class="cyber-panel px-5 py-4 rounded-xl border border-cyber-cyan/40 w-72 hidden md:block">
+            <div class="cyber-panel px-4 py-3 rounded-xl border border-cyber-cyan/40 w-60 md:w-72">
                 <div class="text-xs text-cyber-cyan font-bold tracking-widest uppercase mb-2 flex items-center justify-between">
                     <span>GRID RANKINGS</span>
-                    <i class="fa-solid fa-ranking-star"></i>
+                    <i class="fa-solid fa-trophy text-cyber-yellow text-xs"></i>
                 </div>
-                <div id="leaderboardList" class="space-y-1.5 text-xs">
-                    <!-- Populated dynamically -->
+                <div id="leaderboardList" class="space-y-1 text-xs">
+                    <!-- Leaderboard entries injected dynamically -->
                 </div>
             </div>
         </div>
 
-        <!-- Center Floating Event Notifications -->
-        <div id="eventNotifications" class="absolute top-1/4 left-1/2 -translate-x-1/2 flex flex-col items-center pointer-events-none space-y-2 z-30"></div>
+        <!-- Center Notification Feed -->
+        <div id="eventNotifications" class="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-col items-center pointer-events-none space-y-1.5 z-30"></div>
 
         <!-- Bottom Left: Killfeed -->
-        <div id="killfeedContainer" class="flex flex-col space-y-2 max-w-sm pointer-events-none mb-12 sm:mb-0">
-            <!-- Killfeed items injected here -->
+        <div id="killfeedContainer" class="flex flex-col space-y-1.5 max-w-xs pointer-events-none">
+            <!-- Killfeed items injected dynamically -->
         </div>
 
-        <!-- Bottom Right: Controls / Status -->
-        <div class="flex justify-end items-end">
-            <div class="cyber-panel px-4 py-2 rounded-lg text-xs text-gray-300 flex items-center space-x-3">
-                <span><i class="fa-solid fa-arrow-up text-cyber-cyan mr-1"></i><i class="fa-solid fa-arrow-down text-cyber-cyan mr-1"></i><i class="fa-solid fa-arrow-left text-cyber-cyan mr-1"></i><i class="fa-solid fa-arrow-right text-cyber-cyan mr-1"></i> or WASD to Steer</span>
-                <span class="text-cyber-cyan font-bold">SPACE: Boost/Draft</span>
+        <!-- Bottom Controls / Status Bar -->
+        <div class="flex justify-between items-end">
+            <div class="text-xs text-gray-500 font-mono hidden md:block">
+                Grid System v4.0 | 90° Axis Lock Engine
+            </div>
+            <div class="cyber-panel px-3 py-1.5 rounded-lg text-[11px] text-gray-300 flex items-center space-x-2">
+                <span class="text-cyber-cyan"><i class="fa-solid fa-keyboard mr-1"></i> WASD / Arrows</span>
+                <span class="text-gray-500">|</span>
+                <span class="text-cyber-yellow"><i class="fa-solid fa-bolt mr-1"></i> Ride Parallel to Boost</span>
             </div>
         </div>
     </div>
 
-    <!-- Main Menu Modal -->
+    <!-- Main Entry Modal -->
     <div id="menuModal" class="absolute inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center z-50 p-4">
         <div class="cyber-panel p-8 rounded-2xl border-2 border-cyber-cyan max-w-md w-full text-center neon-border-cyan shadow-2xl">
-            <div class="mb-2 text-cyber-cyan font-black tracking-widest text-sm uppercase">Grid Sim 3.0</div>
-            <h1 class="text-4xl font-black text-white mb-6 tracking-wider neon-glow-cyan">POWERLINE</h1>
+            <div class="mb-2 text-cyber-cyan font-bold tracking-widest text-xs uppercase">Unblocked Plus</div>
+            <h1 class="text-3xl md:text-4xl font-black text-white mb-6 tracking-wider neon-glow-cyan">POWERLINE</h1>
             
             <div class="space-y-4 mb-6 text-left">
                 <div>
-                    <label class="block text-xs text-cyber-cyan font-semibold mb-1 uppercase tracking-wider">Rider Call Sign</label>
-                    <input type="text" id="playerNameInput" value="Rider_X" maxlength="12" class="w-full bg-cyber-dark border border-cyber-cyan/50 rounded-lg px-4 py-3 text-white font-bold focus:outline-none focus:border-cyber-cyan focus:ring-1 focus:ring-cyber-cyan">
+                    <label class="block text-xs text-cyber-cyan font-bold mb-1 uppercase tracking-wider">Rider Call Sign</label>
+                    <input type="text" id="playerNameInput" value="Rider_99" maxlength="12" class="w-full bg-cyber-dark border border-cyber-cyan/50 rounded-lg px-4 py-3 text-white font-bold focus:outline-none focus:border-cyber-cyan focus:ring-1 focus:ring-cyber-cyan">
                 </div>
 
-                <button id="playBtn" class="w-full bg-gradient-to-r from-cyan-500 via-blue-600 to-cyber-pink hover:from-cyan-400 hover:to-pink-500 text-white font-black py-4 px-6 rounded-xl shadow-lg transition transform hover:-translate-y-0.5 text-lg uppercase tracking-wider flex items-center justify-center gap-2">
+                <button id="playBtn" class="w-full bg-gradient-to-r from-cyan-500 via-blue-600 to-cyber-pink hover:from-cyan-400 hover:to-pink-500 text-white font-black py-4 px-6 rounded-xl shadow-lg transition transform hover:-translate-y-0.5 text-lg uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer">
                     <i class="fa-solid fa-play"></i>
                     <span id="playBtnText">PLAY</span>
                 </button>
             </div>
 
-            <!-- Matchmaking Status Bar -->
-            <div id="connectionStatus" class="text-xs text-gray-400 border-t border-gray-800 pt-4 flex items-center justify-center gap-2">
-                <i class="fa-solid fa-signal text-cyber-cyan animate-pulse"></i>
-                <span id="statusText">Ready to join...</span>
+            <div id="connectionStatus" class="text-xs text-gray-400 border-t border-gray-800/80 pt-4 flex items-center justify-center gap-2">
+                <i class="fa-solid fa-wifi text-cyber-cyan animate-pulse"></i>
+                <span id="statusText">Ready to enable p2p connection . . .</span>
             </div>
         </div>
     </div>
@@ -139,27 +158,44 @@
     <!-- Game Over Modal -->
     <div id="gameOverModal" class="absolute inset-0 bg-black/90 backdrop-blur-lg hidden flex items-center justify-center z-50 p-4">
         <div class="cyber-panel p-8 rounded-2xl border-2 border-cyber-pink max-w-md w-full text-center shadow-2xl">
-            <div class="text-cyber-pink font-black text-sm tracking-widest uppercase mb-1">SYSTEM FAILURE</div>
+            <div class="text-cyber-pink font-black text-xs tracking-widest uppercase mb-1">SYSTEM DEREGISTERED</div>
             <h2 class="text-4xl font-black text-white mb-6 tracking-wider neon-glow-pink">REZED</h2>
 
             <div class="grid grid-cols-2 gap-4 mb-6 bg-cyber-dark p-4 rounded-xl border border-gray-800">
                 <div>
-                    <div class="text-xs text-gray-400">Final Score</div>
+                    <div class="text-xs text-gray-400 font-bold">FINAL SCORE</div>
                     <div id="finalScore" class="text-2xl font-black text-white">0</div>
                 </div>
                 <div>
-                    <div class="text-xs text-gray-400">Peak Length</div>
+                    <div class="text-xs text-gray-400 font-bold">PEAK LENGTH</div>
                     <div id="finalLength" class="text-2xl font-black text-cyber-cyan">0</div>
                 </div>
             </div>
 
-            <button id="restartBtn" class="w-full bg-gradient-to-r from-cyber-cyan to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-cyber-dark font-black py-4 px-6 rounded-xl shadow-lg transition transform hover:-translate-y-0.5 text-lg uppercase tracking-wider">
+            <button id="restartBtn" class="w-full bg-gradient-to-r from-cyber-cyan to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-cyber-dark font-black py-4 px-6 rounded-xl shadow-lg transition transform hover:-translate-y-0.5 text-lg uppercase tracking-wider cursor-pointer">
                 Re-Rez Grid
             </button>
         </div>
     </div>
 
     <script>
+        // Game Constants
+        const WORLD_SIZE = 3600;
+        const CELL_SIZE = 20; // Crisp 20px Grid Snapping
+        const BASE_SPEED = 200; // Grid units per second
+        const BOOST_SPEED = 360; // Speed when boosted by riding adjacent
+        const TARGET_ROOM_CAPACITY = 10;
+        const LOBBY_ID_PREFIX = 'powerline-tron-classic-grid-v4-';
+
+        // Direction Vectors (Strict 90-degree orthogonal movement)
+        const DIR = {
+            UP: { x: 0, y: -1 },
+            DOWN: { x: 0, y: 1 },
+            LEFT: { x: -1, y: 0 },
+            RIGHT: { x: 1, y: 0 }
+        };
+
+        // Sound Synthesizer Engine
         class SoundEngine {
             constructor() {
                 this.ctx = null;
@@ -184,270 +220,299 @@
                     osc.stop(this.ctx.currentTime + duration);
                 } catch(e) {}
             }
-            boost() { this.playTone(300, 'sawtooth', 0.15, 0.08); }
-            scoreEvent() { this.playTone(880, 'sine', 0.2, 0.1); }
-            closeCall() { this.playTone(523, 'triangle', 0.1, 0.05); }
-            crash() { this.playTone(120, 'sawtooth', 0.6, 0.2); }
-            kill() { this.playTone(660, 'square', 0.3, 0.15); }
+            turn() { this.playTone(400, 'square', 0.05, 0.03); }
+            boost() { this.playTone(600, 'sawtooth', 0.1, 0.04); }
+            scoreEvent() { this.playTone(880, 'sine', 0.15, 0.08); }
+            closeCall() { this.playTone(520, 'triangle', 0.1, 0.05); }
+            crash() { this.playTone(100, 'sawtooth', 0.5, 0.2); }
+            kill() { this.playTone(700, 'square', 0.25, 0.12); }
         }
 
         const sound = new SoundEngine();
 
-        const WORLD_SIZE = 4000;
-        const GRID_SIZE = 35; // Dense Tron-like grid
-        const BASE_SPEED = 4.5;
-        const BOOST_SPEED = 7.5;
-        const TURN_SPEED = Math.PI * 1.1;
-        const TARGET_ROOM_CAPACITY = 8; // Total entity target (humans + bots)
-        const LOBBY_ID_PREFIX = 'powerline-tron-global-room-';
-
+        // Canvas Setup
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
         const minimapCanvas = document.getElementById('minimapCanvas');
         const minimapCtx = minimapCanvas.getContext('2d');
 
-        let animationFrameId = null;
-        let lastTime = 0;
-        let gameActive = false;
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            minimapCanvas.width = 160;
+            minimapCanvas.height = 160;
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
 
-        // Camera
+        // Camera Tracking
         const camera = {
-            x: 0,
-            y: 0,
+            x: WORLD_SIZE / 2,
+            y: WORLD_SIZE / 2,
             update(targetX, targetY) {
-                this.x += (targetX - this.x) * 0.1;
-                this.y += (targetY - this.y) * 0.1;
+                this.x += (targetX - this.x) * 0.15;
+                this.y += (targetY - this.y) * 0.15;
             }
         };
 
-        // Entities State
-        let player = null;
-        let players = [];
-        let particles = [];
-        let floatingTexts = [];
-
-        // PeerJS Networking State
-        let myPeer = null;
-        let myPeerId = null;
-        let isHost = false;
-        let hostConnection = null;
-        let clientConnections = [];
-        let peerOrder = []; // Track peer connection order for dynamic host migration
-
-        // Controls
-        const keys = { ArrowUp: false, ArrowDown: false, ArrowLeft: false, ArrowRight: false, KeyW: false, KeyA: false, KeyS: false, KeyD: false, Space: false };
-
-        window.addEventListener('keydown', e => {
-            if (e.code in keys || e.key === ' ') {
-                if(e.code === 'Space' || e.key === ' ') keys.Space = true;
-                if(e.code === 'ArrowUp' || e.code === 'KeyW') { keys.ArrowUp = true; keys.KeyW = true; }
-                if(e.code === 'ArrowDown' || e.code === 'KeyS') { keys.ArrowDown = true; keys.KeyS = true; }
-                if(e.code === 'ArrowLeft' || e.code === 'KeyA') { keys.ArrowLeft = true; keys.KeyA = true; }
-                if(e.code === 'ArrowRight' || e.code === 'KeyD') { keys.ArrowRight = true; keys.KeyD = true; }
-                if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight',' '].includes(e.key)) e.preventDefault();
-            }
-        });
-
-        window.addEventListener('keyup', e => {
-            if (e.code in keys || e.key === ' ') {
-                if(e.code === 'Space' || e.key === ' ') keys.Space = false;
-                if(e.code === 'ArrowUp' || e.code === 'KeyW') { keys.ArrowUp = false; keys.KeyW = false; }
-                if(e.code === 'ArrowDown' || e.code === 'KeyS') { keys.ArrowDown = false; keys.KeyS = false; }
-                if(e.code === 'ArrowLeft' || e.code === 'KeyA') { keys.ArrowLeft = false; keys.KeyA = false; }
-                if(e.code === 'ArrowRight' || e.code === 'KeyD') { keys.ArrowRight = false; keys.KeyD = false; }
-            }
-        });
-
-        let touchStartX = 0, touchStartY = 0;
-        window.addEventListener('touchstart', e => {
-            if(e.touches.length > 0) {
-                touchStartX = e.touches[0].clientX;
-                touchStartY = e.touches[0].clientY;
-            }
-        });
-        window.addEventListener('touchmove', e => {
-            if(!gameActive || !player || e.touches.length === 0) return;
-            const dx = e.touches[0].clientX - touchStartX;
-            const dy = e.touches[0].clientY - touchStartY;
-            if(Math.abs(dx) > 20 || Math.abs(dy) > 20) {
-                const targetAngle = Math.atan2(dy, dx);
-                let diff = targetAngle - player.angle;
-                while(diff < -Math.PI) diff += Math.PI * 2;
-                while(diff > Math.PI) diff -= Math.PI * 2;
-                player.targetAngle = player.angle + Math.sign(diff) * Math.min(Math.abs(diff), 0.2);
-                touchStartX = e.touches[0].clientX;
-                touchStartY = e.touches[0].clientY;
-            }
-        });
-
         class Rider {
-            constructor(id, name, x, y, angle, color, isBot = false) {
+            constructor(id, name, gridX, gridY, dir, color, isBot = false) {
                 this.id = id;
                 this.name = name;
-                this.x = x;
-                this.y = y;
-                this.angle = angle;
-                this.targetAngle = angle;
+                this.gridX = gridX;
+                this.gridY = gridY;
+                this.dir = dir; // Current direction vector
+                this.nextDir = dir; // Queued 90-degree turn direction
                 this.color = color;
-                this.speed = BASE_SPEED;
-                this.length = 50;
-                this.score = 0;
-                this.trail = [];
                 this.isBot = isBot;
                 this.alive = true;
-                this.lastCloseCallTime = 0;
+                this.score = 0;
+                this.targetLength = 60; // Length in grid units
+                
+                // Continuous precise position on grid
+                this.x = gridX * CELL_SIZE + CELL_SIZE / 2;
+                this.y = gridY * CELL_SIZE + CELL_SIZE / 2;
+
+                // Path turns points for continuous trail drawing
+                this.path = [
+                    { x: this.x, y: this.y }
+                ];
+
+                this.isBoosting = false;
                 this.lastDraftTime = 0;
-                this.botAI = { timer: 0 };
+                this.lastCloseCallTime = 0;
+                this.botTimer = 0;
+            }
+
+            setDirection(newDir) {
+                // Prevent 180-degree immediate reversal
+                if (newDir.x === -this.dir.x && newDir.y === -this.dir.y) return;
+                this.nextDir = newDir;
             }
 
             update(dt) {
                 if (!this.alive) return;
 
-                // Handle turning
-                let diff = this.targetAngle - this.angle;
-                while (diff < -Math.PI) diff += Math.PI * 2;
-                while (diff > Math.PI) diff -= Math.PI * 2;
-                this.angle += Math.sign(diff) * Math.min(Math.abs(diff), TURN_SPEED * dt);
+                // Check parallel proximity to boost
+                this.checkDraftingAndBoost();
 
-                let currentSpeed = this.speed;
-                if (this === player && keys.Space && this.length > 15) {
-                    currentSpeed = BOOST_SPEED;
-                    if (Math.random() < 0.3) {
-                        this.length -= 0.05;
-                        sound.boost();
+                const speed = this.isBoosting ? BOOST_SPEED : BASE_SPEED;
+                const moveDist = speed * dt;
+
+                let remaining = moveDist;
+
+                while (remaining > 0 && this.alive) {
+                    // Check if aligned with current cell center to execute queued turn
+                    const currentCellX = Math.floor(this.x / CELL_SIZE) * CELL_SIZE + CELL_SIZE / 2;
+                    const currentCellY = Math.floor(this.y / CELL_SIZE) * CELL_SIZE + CELL_SIZE / 2;
+
+                    const distToCenter = Math.hypot(currentCellX - this.x, currentCellY - this.y);
+
+                    // Execute turn if at or past cell center and direction queued
+                    if (this.nextDir !== this.dir && distToCenter <= remaining + 2) {
+                        this.x = currentCellX;
+                        this.y = currentCellY;
+                        this.dir = this.nextDir;
+                        this.path.push({ x: this.x, y: this.y });
+                        if (this === player) sound.turn();
                     }
-                }
 
-                // Forward movement
-                this.x += Math.cos(this.angle) * currentSpeed;
-                this.y += Math.sin(this.angle) * currentSpeed;
+                    // Move step
+                    const step = Math.min(remaining, CELL_SIZE / 2);
+                    this.x += this.dir.x * step;
+                    this.y += this.dir.y * step;
+                    remaining -= step;
 
-                // Record trail point
-                const lastNode = this.trail[this.trail.length - 1];
-                if (!lastNode || Math.hypot(this.x - lastNode.x, this.y - lastNode.y) > 10) {
-                    this.trail.push({ x: this.x, y: this.y });
-                    const maxNodes = Math.floor(this.length * 3);
-                    while (this.trail.length > maxNodes) {
-                        this.trail.shift();
+                    // Update head node of path
+                    if (this.path.length > 0) {
+                        this.path[this.path.length - 1] = { x: this.x, y: this.y };
                     }
+
+                    // Grid Bounds Collision Check
+                    if (this.x < CELL_SIZE || this.x > WORLD_SIZE - CELL_SIZE || this.y < CELL_SIZE || this.y > WORLD_SIZE - CELL_SIZE) {
+                        this.die('wall');
+                        return;
+                    }
+
+                    // Check Body Collisions
+                    this.checkCollisions();
                 }
 
-                // Boundary collision
-                if (this.x < 50 || this.x > WORLD_SIZE - 50 || this.y < 50 || this.y > WORLD_SIZE - 50) {
-                    this.die('wall');
-                    return;
-                }
+                // Trim path to maintain length limit
+                this.trimPath();
 
-                this.checkInteractions();
-
+                // Bot AI Logic
                 if (this.isBot && isHost) {
                     this.updateBotAI(dt);
                 }
             }
 
-            checkInteractions() {
-                let nearWall = (this.x < 150 || this.x > WORLD_SIZE - 150 || this.y < 150 || this.y > WORLD_SIZE - 150);
-                let nearPlayerLine = false;
+            checkDraftingAndBoost() {
+                this.isBoosting = false;
+                let closeToLine = false;
 
                 for (let other of players) {
-                    const skipNodes = (other === this) ? 30 : 5;
-                    const trailToCheck = other.trail;
+                    if (!other.alive) continue;
+                    
+                    // Check distance to other player's lines
+                    for (let i = 0; i < other.path.length - 1; i++) {
+                        const p1 = other.path[i];
+                        const p2 = other.path[i + 1];
+                        
+                        const dist = distToSegment({ x: this.x, y: this.y }, p1, p2);
 
-                    for (let i = 0; i < trailToCheck.length - skipNodes; i++) {
-                        let pt = trailToCheck[i];
-                        let dist = Math.hypot(this.x - pt.x, this.y - pt.y);
+                        // Parallel riding zone (between 12px and 45px away)
+                        if (dist > 10 && dist < 42) {
+                            closeToLine = true;
+                            break;
+                        }
+                    }
+                    if (closeToLine) break;
+                }
 
-                        // Crash
-                        if (dist < 12) {
+                if (closeToLine) {
+                    this.isBoosting = true;
+                    if (Date.now() - this.lastDraftTime > 500) {
+                        this.targetLength += 0.8;
+                        this.score += 5;
+                        if (this === player) {
+                            addFloatingText(this.x, this.y, '+5 BOOST', '#fcee0a');
+                            sound.boost();
+                        }
+                        this.lastDraftTime = Date.now();
+                    }
+                }
+            }
+
+            checkCollisions() {
+                const head = { x: this.x, y: this.y };
+
+                for (let other of players) {
+                    if (!other.alive) continue;
+
+                    const segmentCount = other.path.length - 1;
+                    for (let i = 0; i < segmentCount; i++) {
+                        // Skip head segment of self to prevent self-instant crash
+                        if (other === this && i >= segmentCount - 1) continue;
+
+                        const p1 = other.path[i];
+                        const p2 = other.path[i + 1];
+
+                        const dist = distToSegment(head, p1, p2);
+
+                        if (dist < 8) {
                             if (other === this) {
                                 this.die('self');
                             } else {
-                                other.score += Math.floor(this.score * 0.5) + 500;
-                                other.length += Math.floor(this.length * 0.4);
+                                // Kill awarded to other player
+                                other.score += Math.floor(this.score * 0.5) + 300;
+                                other.targetLength += Math.floor(this.targetLength * 0.3);
+
                                 if (other === player) {
-                                    addFloatingText(other.x, other.y, `+${Math.floor(this.score * 0.5) + 500} KILL!`, '#00f3ff');
+                                    addFloatingText(other.x, other.y, `+${Math.floor(this.score * 0.5) + 300} CUT KILL!`, '#00f3ff');
+                                    sound.kill();
                                 }
-                                addAnkleBreakerEvent(other, this);
                                 this.die('player', other);
                             }
                             return;
                         }
 
-                        // Drafting
-                        if (other !== this && dist > 15 && dist < 45) {
-                            nearPlayerLine = true;
-                            if (Date.now() - this.lastDraftTime > 1000) {
-                                this.length += 0.2;
-                                this.score += 10;
-                                if (this === player) {
-                                    addFloatingText(this.x, this.y, '+10 DRAFT', '#fcee0a');
-                                    sound.scoreEvent();
-                                }
-                                this.lastDraftTime = Date.now();
-                            }
-                        }
-
-                        // Close call
-                        if (dist >= 12 && dist < 25 && (Date.now() - this.lastCloseCallTime > 3000)) {
+                        // Close Call Detection
+                        if (dist >= 8 && dist < 22 && (Date.now() - this.lastCloseCallTime > 2500)) {
                             if (this === player) {
-                                this.score += 50;
-                                addFloatingText(this.x, this.y, '+50 CLOSE CALL!', '#ff0055');
+                                this.score += 30;
+                                addFloatingText(this.x, this.y, '+30 CLOSE CALL!', '#ff0055');
                                 sound.closeCall();
                             }
                             this.lastCloseCallTime = Date.now();
                         }
                     }
                 }
+            }
 
-                // Dual riding
-                if (nearWall && nearPlayerLine) {
-                    if (this === player && Math.random() < 0.05) {
-                        this.score += 25;
-                        this.length += 0.5;
-                        addFloatingText(this.x, this.y, '+25 DUAL RIDE!', '#00f3ff');
+            trimPath() {
+                let currentTotalLen = 0;
+                for (let i = this.path.length - 1; i > 0; i--) {
+                    const p1 = this.path[i];
+                    const p2 = this.path[i - 1];
+                    currentTotalLen += Math.hypot(p1.x - p2.x, p1.y - p2.y);
+                }
+
+                while (currentTotalLen > this.targetLength * CELL_SIZE && this.path.length > 2) {
+                    const p0 = this.path[0];
+                    const p1 = this.path[1];
+                    const segLen = Math.hypot(p1.x - p0.x, p1.y - p0.y);
+                    const excess = currentTotalLen - (this.targetLength * CELL_SIZE);
+
+                    if (segLen <= excess) {
+                        currentTotalLen -= segLen;
+                        this.path.shift();
+                    } else {
+                        const ratio = (segLen - excess) / segLen;
+                        this.path[0] = {
+                            x: p1.x + (p0.x - p1.x) * ratio,
+                            y: p1.y + (p0.y - p1.y) * ratio
+                        };
+                        break;
                     }
                 }
             }
 
             updateBotAI(dt) {
-                this.botAI.timer += dt;
-                let aheadX = this.x + Math.cos(this.angle) * 70;
-                let aheadY = this.y + Math.sin(this.angle) * 70;
+                this.botTimer += dt;
+                
+                // Look ahead 3 grid cells
+                const aheadX = this.x + this.dir.x * (CELL_SIZE * 3.5);
+                const aheadY = this.y + this.dir.y * (CELL_SIZE * 3.5);
 
-                let imminentCrash = (aheadX < 100 || aheadX > WORLD_SIZE - 100 || aheadY < 100 || aheadY > WORLD_SIZE - 100);
+                let obstacle = (aheadX < CELL_SIZE * 2 || aheadX > WORLD_SIZE - CELL_SIZE * 2 || aheadY < CELL_SIZE * 2 || aheadY > WORLD_SIZE - CELL_SIZE * 2);
 
-                for (let other of players) {
-                    for (let pt of other.trail) {
-                        if (Math.hypot(aheadX - pt.x, aheadY - pt.y) < 50) {
-                            imminentCrash = true;
-                            break;
+                if (!obstacle) {
+                    for (let other of players) {
+                        if (!other.alive) continue;
+                        for (let i = 0; i < other.path.length - 1; i++) {
+                            const p1 = other.path[i];
+                            const p2 = other.path[i + 1];
+                            if (distToSegment({ x: aheadX, y: aheadY }, p1, p2) < CELL_SIZE * 1.5) {
+                                obstacle = true;
+                                break;
+                            }
                         }
+                        if (obstacle) break;
                     }
-                    if (imminentCrash) break;
                 }
 
-                if (imminentCrash || this.botAI.timer > 2.5) {
-                    this.targetAngle += (Math.random() > 0.5 ? 1 : -1) * (Math.PI / 2 + Math.random() * 0.5);
-                    this.botAI.timer = 0;
+                if (obstacle || this.botTimer > 3.0) {
+                    // Turn 90 degrees Left or Right
+                    const possibleDirs = this.dir.x !== 0 
+                        ? [DIR.UP, DIR.DOWN] 
+                        : [DIR.LEFT, DIR.RIGHT];
+
+                    // Choose safest direction
+                    const choice = possibleDirs[Math.floor(Math.random() * possibleDirs.length)];
+                    this.setDirection(choice);
+                    this.botTimer = 0;
                 }
             }
 
             die(reason, killer = null) {
                 if (!this.alive) return;
                 this.alive = false;
+
                 if (this === player) sound.crash();
 
-                for (let i = 0; i < 30; i++) {
+                // Explode particles
+                for (let i = 0; i < 35; i++) {
                     particles.push(new Particle(this.x, this.y, this.color));
                 }
 
+                // Announce in killfeed
                 if (reason === 'wall') {
-                    pushKillfeed(`${this.name} 🧱`, 'wall');
+                    pushKillfeed(`${this.name} 🧱 Wall`, 'wall');
                 } else if (reason === 'self' || killer === this) {
                     pushKillfeed(`${this.name} ⚡ ${this.name}`, 'self');
                 } else if (killer) {
                     pushKillfeed(`${killer.name} ⚡ ${this.name}`, 'kill');
-                    if (killer === player) sound.kill();
                 }
 
                 if (this === player) {
@@ -455,17 +520,19 @@
                 } else if (isHost) {
                     setTimeout(() => {
                         if (!gameActive || !this.isBot) return;
-                        this.x = 500 + Math.random() * (WORLD_SIZE - 1000);
-                        this.y = 500 + Math.random() * (WORLD_SIZE - 1000);
-                        this.angle = Math.random() * Math.PI * 2;
-                        this.targetAngle = this.angle;
-                        this.length = 50;
-                        this.score = 0;
-                        this.trail = [];
-                        this.alive = true;
-                    }, 3000);
+                        respawnBot(this);
+                    }, 2500);
                 }
             }
+        }
+
+        // Helper: distance from point to segment
+        function distToSegment(p, v, w) {
+            const l2 = (v.x - w.x) ** 2 + (v.y - w.y) ** 2;
+            if (l2 === 0) return Math.hypot(p.x - v.x, p.y - v.y);
+            let t = ((p.x - v.x) * (w.x - v.x) + (p.y - v.y) * (w.y - v.y)) / l2;
+            t = Math.max(0, Math.min(1, t));
+            return Math.hypot(p.x - (v.x + t * (w.x - v.x)), p.y - (v.y + t * (w.y - v.y)));
         }
 
         class Particle {
@@ -474,11 +541,11 @@
                 this.y = y;
                 this.color = color;
                 const angle = Math.random() * Math.PI * 2;
-                const speed = 2 + Math.random() * 6;
+                const speed = 3 + Math.random() * 7;
                 this.vx = Math.cos(angle) * speed;
                 this.vy = Math.sin(angle) * speed;
                 this.life = 1.0;
-                this.decay = 0.02 + Math.random() * 0.03;
+                this.decay = 0.025 + Math.random() * 0.03;
             }
             update() {
                 this.x += this.vx;
@@ -487,62 +554,83 @@
             }
             draw(context) {
                 context.save();
-                context.globalAlpha = this.life;
+                context.globalAlpha = Math.max(0, this.life);
                 context.fillStyle = this.color;
-                context.beginPath();
-                context.arc(this.x, this.y, 3, 0, Math.PI * 2);
-                context.fill();
+                context.shadowColor = this.color;
+                context.shadowBlur = 8;
+                context.fillRect(this.x - 2, this.y - 2, 4, 4);
                 context.restore();
             }
         }
 
-        function addFloatingText(x, y, text, color) {
-            floatingTexts.push({ x, y, text, color, life: 1.0, vy: -1.5 });
-        }
+        let players = [];
+        let particles = [];
+        let floatingTexts = [];
+        let player = null;
+        let gameActive = false;
 
-        function addAnkleBreakerEvent(winner, loser) {
-            winner.score += 500;
-            if (winner === player) {
-                addFloatingText(winner.x, winner.y, '+500 ANKLE BREAKER!', '#fcee0a');
-            }
+        function addFloatingText(x, y, text, color) {
+            floatingTexts.push({ x, y, text, color, life: 1.0, vy: -1.2 });
         }
 
         function pushKillfeed(text, type) {
             const container = document.getElementById('killfeedContainer');
             const item = document.createElement('div');
-            item.className = 'cyber-panel px-3 py-1.5 rounded-lg text-xs font-bold text-white border border-cyber-cyan/30 flex items-center space-x-2 animate-pulse';
+            item.className = 'cyber-panel px-3 py-1.5 rounded-lg text-xs font-bold text-white border border-cyber-cyan/30 flex items-center space-x-2 animate-fade-in';
             
             let icon = '<i class="fa-solid fa-bolt text-cyber-yellow"></i>';
             if (type === 'wall') icon = '<i class="fa-solid fa-cube text-gray-400"></i>';
-            if (type === 'kill') icon = '<i class="fa-solid fa-bolt text-cyber-pink"></i>';
+            if (type === 'kill') icon = '<i class="fa-solid fa-scissors text-cyber-pink"></i>';
 
             item.innerHTML = `${icon} <span>${text}</span>`;
             container.appendChild(item);
 
             setTimeout(() => {
                 item.style.opacity = '0';
-                item.style.transition = 'opacity 0.5s ease';
-                setTimeout(() => item.remove(), 500);
-            }, 4000);
+                item.style.transition = 'opacity 0.4s ease';
+                setTimeout(() => item.remove(), 400);
+            }, 3500);
         }
 
-        function updateRoleBadge() {
-            const badge = document.getElementById('roleBadge');
-            if (isHost) {
-                badge.innerText = `GRID HOST (${players.filter(p => !p.isBot).length} PLAYERS)`;
-                badge.className = 'text-[10px] px-2 py-0.5 rounded bg-cyber-pink/20 border border-cyber-pink/40 text-cyber-pink';
-            } else {
-                badge.innerText = 'CONNECTED CLIENT';
-                badge.className = 'text-[10px] px-2 py-0.5 rounded bg-cyber-cyan/20 border border-cyber-cyan/40 text-cyber-cyan';
-            }
-        }
+        let myPeer = null;
+        let myPeerId = null;
+        let isHost = false;
+        let hostConnection = null;
+        let clientConnections = [];
+        let peerOrder = [];
 
         function updateStatus(msg) {
             document.getElementById('statusText').innerText = msg;
         }
 
-        const botNames = ['BitRunner', 'GridReaper', 'Vector9', 'CypherX', 'NeonByte', 'NullPointer', 'ByteSlayer', 'GlitchMaster'];
-        const botColors = ['#ff0055', '#fcee0a', '#a855f7', '#10b981', '#f97316', '#3b82f6'];
+        function updateRoleBadge() {
+            const badge = document.getElementById('roleBadge');
+            if (isHost) {
+                badge.innerText = `HOST (${players.filter(p => !p.isBot).length} PLAYERS)`;
+                badge.className = 'text-[9px] px-1.5 py-0.5 rounded bg-cyber-pink/20 border border-cyber-pink/40 text-cyber-pink';
+            } else {
+                badge.innerText = 'CLIENT PEER';
+                badge.className = 'text-[9px] px-1.5 py-0.5 rounded bg-cyber-cyan/20 border border-cyber-cyan/40 text-cyber-cyan';
+            }
+        }
+
+        const botNames = ['NeonGrid', 'Vector82', 'TronByte', 'CypherNode', 'ByteSlayer', 'NullPointer', 'GridGhost', 'LaserTail'];
+        const botColors = ['#ff0055', '#fcee0a', '#a855f7', '#00ff66', '#f97316', '#3b82f6'];
+
+        function respawnBot(botRider) {
+            const gx = Math.floor(5 + Math.random() * (WORLD_SIZE / CELL_SIZE - 10));
+            const gy = Math.floor(5 + Math.random() * (WORLD_SIZE / CELL_SIZE - 10));
+            botRider.gridX = gx;
+            botRider.gridY = gy;
+            botRider.x = gx * CELL_SIZE + CELL_SIZE / 2;
+            botRider.y = gy * CELL_SIZE + CELL_SIZE / 2;
+            botRider.dir = [DIR.UP, DIR.DOWN, DIR.LEFT, DIR.RIGHT][Math.floor(Math.random() * 4)];
+            botRider.nextDir = botRider.dir;
+            botRider.path = [{ x: botRider.x, y: botRider.y }];
+            botRider.targetLength = 60;
+            botRider.score = 0;
+            botRider.alive = true;
+        }
 
         function balanceBots() {
             if (!isHost) return;
@@ -552,18 +640,17 @@
             const desiredBotCount = Math.max(1, TARGET_ROOM_CAPACITY - humanCount);
 
             if (currentBotCount < desiredBotCount) {
-                // Add bots
                 for (let i = currentBotCount; i < desiredBotCount; i++) {
-                    let bx = 500 + Math.random() * (WORLD_SIZE - 1000);
-                    let by = 500 + Math.random() * (WORLD_SIZE - 1000);
-                    let bAngle = Math.random() * Math.PI * 2;
-                    let botId = `bot_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
-                    let name = botNames[Math.floor(Math.random() * botNames.length)];
-                    let color = botColors[Math.floor(Math.random() * botColors.length)];
-                    players.push(new Rider(botId, name, bx, by, bAngle, color, true));
+                    const gx = Math.floor(5 + Math.random() * (WORLD_SIZE / CELL_SIZE - 10));
+                    const gy = Math.floor(5 + Math.random() * (WORLD_SIZE / CELL_SIZE - 10));
+                    const dir = [DIR.UP, DIR.DOWN, DIR.LEFT, DIR.RIGHT][Math.floor(Math.random() * 4)];
+                    const name = botNames[Math.floor(Math.random() * botNames.length)];
+                    const color = botColors[Math.floor(Math.random() * botColors.length)];
+                    const botId = `bot_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
+
+                    players.push(new Rider(botId, name, gx, gy, dir, color, true));
                 }
             } else if (currentBotCount > desiredBotCount) {
-                // Remove excess bots gracefully
                 let removed = 0;
                 const toRemove = currentBotCount - desiredBotCount;
                 for (let i = players.length - 1; i >= 0; i--) {
@@ -576,7 +663,7 @@
         }
 
         function initSeamlessNetwork(playerName, callback) {
-            updateStatus('Connecting to Peer Matrix...');
+            updateStatus('Connecting to Grid Peer Matrix...');
             myPeer = new Peer();
 
             myPeer.on('open', id => {
@@ -585,16 +672,15 @@
             });
 
             myPeer.on('error', err => {
-                console.warn('Peer error, fallback to solo host mode:', err);
+                console.warn('Peer network exception, falling back to local host mode:', err);
                 becomeHost(playerName, callback);
             });
         }
 
         function attemptJoinOrHost(playerName, callback) {
-            updateStatus('Searching for active Grid host...');
+            updateStatus('Locating active Grid lobby...');
             const targetHostId = LOBBY_ID_PREFIX + '1';
 
-            // Don't connect to ourselves if we are host ID
             if (myPeerId === targetHostId) {
                 becomeHost(playerName, callback);
                 return;
@@ -606,19 +692,18 @@
             const connectionTimeout = setTimeout(() => {
                 if (!connected) {
                     conn.close();
-                    updateStatus('No host found. Initializing new Grid Server...');
+                    updateStatus('No lobby found. Registering as Grid Server...');
                     becomeHost(playerName, callback);
                 }
-            }, 2500);
+            }, 2000);
 
             conn.on('open', () => {
                 connected = true;
                 clearTimeout(connectionTimeout);
                 isHost = false;
                 hostConnection = conn;
-                updateStatus('Connected! Synchronizing Grid state...');
+                updateStatus('Connected to Grid Server!');
 
-                // Send join request
                 conn.send({
                     type: 'JOIN',
                     name: playerName,
@@ -629,7 +714,7 @@
                 if (callback) callback();
             });
 
-            conn.on('error', err => {
+            conn.on('error', () => {
                 clearTimeout(connectionTimeout);
                 becomeHost(playerName, callback);
             });
@@ -637,18 +722,16 @@
 
         function becomeHost(playerName, callback) {
             isHost = true;
-            // Destroy existing peer if we need to claim the fixed server lobby ID
             if (myPeer && myPeerId !== LOBBY_ID_PREFIX + '1') {
                 myPeer.destroy();
                 myPeer = new Peer(LOBBY_ID_PREFIX + '1');
-                
+
                 myPeer.on('open', id => {
                     myPeerId = id;
                     setupHostServer(playerName, callback);
                 });
 
                 myPeer.on('error', () => {
-                    // Fallback to random ID if lobby ID in use
                     myPeer = new Peer();
                     myPeer.on('open', id => {
                         myPeerId = id;
@@ -663,7 +746,7 @@
         function setupHostServer(playerName, callback) {
             isHost = true;
             updateStatus('Grid Server Online!');
-            
+
             myPeer.on('connection', conn => {
                 clientConnections.push(conn);
 
@@ -681,22 +764,18 @@
 
         function handleHostData(conn, data) {
             if (data.type === 'JOIN') {
-                let px = 500 + Math.random() * (WORLD_SIZE - 1000);
-                let py = 500 + Math.random() * (WORLD_SIZE - 1000);
-                let pRider = new Rider(data.peerId, data.name, px, py, 0, '#ff0055', false);
+                const gx = Math.floor(5 + Math.random() * (WORLD_SIZE / CELL_SIZE - 10));
+                const gy = Math.floor(5 + Math.random() * (WORLD_SIZE / CELL_SIZE - 10));
+                const pRider = new Rider(data.peerId, data.name, gx, gy, DIR.RIGHT, '#ff0055', false);
                 players.push(pRider);
                 peerOrder.push(data.peerId);
                 balanceBots();
 
-                // Send immediate full state back
-                conn.send({
-                    type: 'INIT_STATE',
-                    peerOrder: peerOrder
-                });
+                conn.send({ type: 'INIT_STATE', peerOrder });
             } else if (data.type === 'INPUT') {
-                let p = players.find(playerObj => playerObj.id === data.peerId);
+                const p = players.find(playerObj => playerObj.id === data.peerId);
                 if (p) {
-                    p.targetAngle = data.targetAngle;
+                    p.setDirection(data.dir);
                 }
             }
         }
@@ -706,62 +785,39 @@
             players = players.filter(p => p.id !== conn.peer);
             peerOrder = peerOrder.filter(id => id !== conn.peer);
             balanceBots();
-
-            if (players.filter(p => !p.isBot).length === 0) {
-                // All players left
-                console.log('Grid empty, standing by...');
-            }
         }
 
         function setupClientListeners() {
             hostConnection.on('data', data => {
                 if (data.type === 'INIT_STATE') {
                     peerOrder = data.peerOrder;
-                } else if (data.type === 'HOST_MIGRATION') {
-                    // Host disconnected! Perform dynamic migration to oldest connected peer
-                    const nextHostId = data.newHostId;
-                    if (myPeerId === nextHostId) {
-                        becomeHost(player.name, null);
-                    } else {
-                        // Reconnect to new host
-                        attemptJoinOrHost(player.name, null);
-                    }
                 }
             });
 
             hostConnection.on('close', () => {
-                updateStatus('Host re-rezzed! Attempting seamless migration...');
+                updateStatus('Host re-rezzed! Performing seamless host migration...');
                 setTimeout(() => {
                     attemptJoinOrHost(player.name, null);
                 }, 1000);
             });
         }
 
-        function resizeCanvas() {
-            canvas.width = window.innerWidth;
-            canvas.height = window.innerHeight;
-            minimapCanvas.width = 150;
-            minimapCanvas.height = 150;
-        }
-        window.addEventListener('resize', resizeCanvas);
-        resizeCanvas();
-
         function drawGrid() {
             ctx.save();
             ctx.strokeStyle = 'rgba(0, 243, 255, 0.08)';
             ctx.lineWidth = 1;
 
-            const startX = Math.floor((camera.x - canvas.width / 2) / GRID_SIZE) * GRID_SIZE;
-            const endX = startX + canvas.width + GRID_SIZE * 2;
-            const startY = Math.floor((camera.y - canvas.height / 2) / GRID_SIZE) * GRID_SIZE;
-            const endY = startY + canvas.height + GRID_SIZE * 2;
+            const startX = Math.floor((camera.x - canvas.width / 2) / CELL_SIZE) * CELL_SIZE;
+            const endX = startX + canvas.width + CELL_SIZE * 2;
+            const startY = Math.floor((camera.y - canvas.height / 2) / CELL_SIZE) * CELL_SIZE;
+            const endY = startY + canvas.height + CELL_SIZE * 2;
 
             ctx.beginPath();
-            for (let x = startX; x <= endX; x += GRID_SIZE) {
+            for (let x = startX; x <= endX; x += CELL_SIZE) {
                 ctx.moveTo(x, startY);
                 ctx.lineTo(x, endY);
             }
-            for (let y = startY; y <= endY; y += GRID_SIZE) {
+            for (let y = startY; y <= endY; y += CELL_SIZE) {
                 ctx.moveTo(startX, y);
                 ctx.lineTo(endX, y);
             }
@@ -781,7 +837,7 @@
 
         function drawMinimap() {
             minimapCtx.clearRect(0, 0, minimapCanvas.width, minimapCanvas.height);
-            minimapCtx.fillStyle = '#030712';
+            minimapCtx.fillStyle = '#02040a';
             minimapCtx.fillRect(0, 0, minimapCanvas.width, minimapCanvas.height);
 
             const scale = minimapCanvas.width / WORLD_SIZE;
@@ -800,15 +856,14 @@
             const sorted = [...players].sort((a,b) => b.score - a.score);
             const list = document.getElementById('leaderboardList');
             list.innerHTML = '';
-            
-            sorted.slice(0, 7).forEach((p, index) => {
-                const row = document.createElement('div');
-                row.className = `flex justify-between items-center px-2 py-1 rounded ${p === player ? 'bg-cyber-cyan/20 text-cyber-cyan font-bold border border-cyber-cyan/30' : 'text-gray-300'}`;
-                
-                // Bot vs Human Icon distinction
-                const icon = p.isBot ? '<i class="fa-solid fa-robot text-cyber-yellow mr-1.5" title="AI Bot"></i>' : '<i class="fa-solid fa-user text-cyber-cyan mr-1.5" title="Human Player"></i>';
 
-                row.innerHTML = `<span class="flex items-center">${index + 1}. ${icon} ${p.name}</span><span class="font-bold">${p.score}</span>`;
+            sorted.slice(0, 6).forEach((p, index) => {
+                const row = document.createElement('div');
+                row.className = `flex justify-between items-center px-2 py-0.5 rounded ${p === player ? 'bg-cyber-cyan/20 text-cyber-cyan font-bold border border-cyber-cyan/30' : 'text-gray-300'}`;
+                
+                const icon = p.isBot ? '<i class="fa-solid fa-robot text-cyber-yellow mr-1" title="Bot"></i>' : '<i class="fa-solid fa-user text-cyber-cyan mr-1" title="Player"></i>';
+
+                row.innerHTML = `<span class="flex items-center text-[11px]">${index + 1}. ${icon} ${p.name}</span><span class="font-bold text-[11px]">${p.score}</span>`;
                 list.appendChild(row);
             });
         }
@@ -818,8 +873,10 @@
             particles = [];
             floatingTexts = [];
 
-            // Local player creation
-            player = new Rider(myPeerId || 'local_player', playerName, WORLD_SIZE / 2, WORLD_SIZE / 2, 0, '#00f3ff', false);
+            const gx = Math.floor(10 + Math.random() * (WORLD_SIZE / CELL_SIZE - 20));
+            const gy = Math.floor(10 + Math.random() * (WORLD_SIZE / CELL_SIZE - 20));
+
+            player = new Rider(myPeerId || 'local_player', playerName, gx, gy, DIR.RIGHT, '#00f3ff', false);
             players.push(player);
 
             if (isHost) {
@@ -829,146 +886,195 @@
             gameActive = true;
             document.getElementById('menuModal').classList.add('hidden');
             document.getElementById('gameOverModal').classList.add('hidden');
-            lastTime = performance.now();
-            if(!animationFrameId) gameLoop(lastTime);
+            
+            let lastTimestamp = performance.now();
+            
+            function gameLoop(now) {
+                const dt = Math.min((now - lastTimestamp) / 1000, 0.08);
+                lastTimestamp = now;
+
+                if (gameActive) {
+                    // Camera update
+                    camera.update(player.x, player.y);
+
+                    // Update Riders
+                    for (let p of players) {
+                        p.update(dt);
+                    }
+
+                    // Update Particles
+                    for (let i = particles.length - 1; i >= 0; i--) {
+                        particles[i].update();
+                        if (particles[i].life <= 0) particles.splice(i, 1);
+                    }
+
+                    // Update Floating Texts
+                    for (let i = floatingTexts.length - 1; i >= 0; i--) {
+                        let ft = floatingTexts[i];
+                        ft.y += ft.vy;
+                        ft.life -= 0.02;
+                        if (ft.life <= 0) floatingTexts.splice(i, 1);
+                    }
+
+                    // Update HUD
+                    document.getElementById('hudScore').innerText = player.score;
+                    document.getElementById('hudLength').innerText = Math.floor(player.targetLength);
+                    updateLeaderboard();
+                    updateRoleBadge();
+                }
+
+                // Render Canvas
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+                ctx.save();
+                ctx.translate(canvas.width / 2 - camera.x, canvas.height / 2 - camera.y);
+
+                drawGrid();
+                drawWorldBounds();
+
+                // Render Rider Line Trails (Strict 90-degree segment rendering)
+                for (let p of players) {
+                    if (p.path.length > 1) {
+                        ctx.save();
+                        ctx.strokeStyle = p.color;
+                        ctx.shadowColor = p.color;
+                        ctx.shadowBlur = p.isBoosting ? 18 : 8;
+                        ctx.lineWidth = p.isBoosting ? 5 : 4;
+                        ctx.lineCap = 'square';
+                        ctx.lineJoin = 'miter';
+
+                        ctx.beginPath();
+                        ctx.moveTo(p.path[0].x, p.path[0].y);
+                        for (let i = 1; i < p.path.length; i++) {
+                            ctx.lineTo(p.path[i].x, p.path[i].y);
+                        }
+                        ctx.stroke();
+                        ctx.restore();
+                    }
+                }
+
+                // Render Rider Heads
+                for (let p of players) {
+                    if (!p.alive) continue;
+                    ctx.save();
+                    ctx.fillStyle = p.color;
+                    ctx.shadowColor = p.color;
+                    ctx.shadowBlur = 12;
+                    ctx.fillRect(p.x - CELL_SIZE / 2, p.y - CELL_SIZE / 2, CELL_SIZE, CELL_SIZE);
+                    
+                    // Eye/Front indicator
+                    ctx.fillStyle = '#ffffff';
+                    const eyeSize = 4;
+                    ctx.fillRect(
+                        p.x + p.dir.x * 4 - eyeSize / 2, 
+                        p.y + p.dir.y * 4 - eyeSize / 2, 
+                        eyeSize, 
+                        eyeSize
+                    );
+                    ctx.restore();
+                }
+
+                // Render Particles
+                for (let pt of particles) {
+                    pt.draw(ctx);
+                }
+
+                // Render Floating Score Texts
+                for (let ft of floatingTexts) {
+                    ctx.save();
+                    ctx.globalAlpha = Math.max(0, ft.life);
+                    ctx.font = 'bold 14px Orbitron';
+                    ctx.fillStyle = ft.color;
+                    ctx.shadowColor = ft.color;
+                    ctx.shadowBlur = 8;
+                    ctx.fillText(ft.text, ft.x - 20, ft.y);
+                    ctx.restore();
+                }
+
+                ctx.restore();
+
+                drawMinimap();
+
+                requestAnimationFrame(gameLoop);
+            }
+
+            requestAnimationFrame(gameLoop);
         }
 
         function triggerGameOver() {
             gameActive = false;
             document.getElementById('finalScore').innerText = player.score;
-            document.getElementById('finalLength').innerText = Math.floor(player.length);
+            document.getElementById('finalLength').innerText = Math.floor(player.targetLength);
             document.getElementById('gameOverModal').classList.remove('hidden');
         }
 
-        function gameLoop(timestamp) {
-            const dt = Math.min((timestamp - lastTime) / 1000, 0.1);
-            lastTime = timestamp;
+        window.addEventListener('keydown', e => {
+            if (!player || !player.alive) return;
 
-            if (gameActive) {
-                // Player Steering
-                if (player.alive) {
-                    let oldAngle = player.targetAngle;
-                    if (keys.ArrowUp || keys.KeyW) player.targetAngle = -Math.PI / 2;
-                    if (keys.ArrowDown || keys.KeyS) player.targetAngle = Math.PI / 2;
-                    if (keys.ArrowLeft || keys.KeyA) player.targetAngle = Math.PI;
-                    if (keys.ArrowRight || keys.KeyD) player.targetAngle = 0;
+            let turnDir = null;
+            if (e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W') turnDir = DIR.UP;
+            if (e.key === 'ArrowDown' || e.key === 's' || e.key === 'S') turnDir = DIR.DOWN;
+            if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') turnDir = DIR.LEFT;
+            if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') turnDir = DIR.RIGHT;
 
-                    // Network send steering input to host if client
-                    if (!isHost && hostConnection && oldAngle !== player.targetAngle) {
-                        hostConnection.send({
-                            type: 'INPUT',
-                            peerId: myPeerId,
-                            targetAngle: player.targetAngle
-                        });
-                    }
-                }
-
-                camera.update(player.x, player.y);
-
-                // Update players
-                for (let p of players) {
-                    p.update(dt);
-                }
-
-                // Particles
-                for (let i = particles.length - 1; i >= 0; i--) {
-                    particles[i].update();
-                    if (particles[i].life <= 0) particles.splice(i, 1);
-                }
-
-                // Floating Texts
-                for (let i = floatingTexts.length - 1; i >= 0; i--) {
-                    let ft = floatingTexts[i];
-                    ft.y += ft.vy;
-                    ft.life -= 0.02;
-                    if (ft.life <= 0) floatingTexts.splice(i, 1);
-                }
-
-                // Update HUD
-                document.getElementById('hudScore').innerText = player.score;
-                document.getElementById('hudLength').innerText = Math.floor(player.length);
-                updateLeaderboard();
-                updateRoleBadge();
-            }
-
-            // Render Canvas
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-            ctx.save();
-            ctx.translate(canvas.width / 2 - camera.x, canvas.height / 2 - camera.y);
-
-            drawGrid();
-            drawWorldBounds();
-
-            // Render Trails
-            for (let p of players) {
-                if (p.trail.length > 1) {
-                    ctx.save();
-                    ctx.strokeStyle = p.color;
-                    ctx.shadowColor = p.color;
-                    ctx.shadowBlur = 12;
-                    ctx.lineWidth = 4;
-                    ctx.beginPath();
-                    ctx.moveTo(p.trail[0].x, p.trail[0].y);
-                    for (let i = 1; i < p.trail.length; i++) {
-                        ctx.lineTo(p.trail[i].x, p.trail[i].y);
-                    }
-                    ctx.stroke();
-                    ctx.restore();
+            if (turnDir) {
+                player.setDirection(turnDir);
+                if (!isHost && hostConnection) {
+                    hostConnection.send({
+                        type: 'INPUT',
+                        peerId: myPeerId,
+                        dir: turnDir
+                    });
                 }
             }
+        });
 
-            // Render Rider Heads
-            for (let p of players) {
-                if (!p.alive) continue;
-                ctx.save();
-                ctx.translate(p.x, p.y);
-                ctx.rotate(p.angle);
-                ctx.fillStyle = p.color;
-                ctx.shadowColor = p.color;
-                ctx.shadowBlur = 15;
-                ctx.fillRect(-10, -6, 20, 12);
-                ctx.fillStyle = '#ffffff';
-                ctx.fillRect(4, -3, 6, 6);
-                ctx.restore();
+        // Touch Swipe Gesture Support
+        let touchStartX = 0, touchStartY = 0;
+        window.addEventListener('touchstart', e => {
+            if (e.touches.length > 0) {
+                touchStartX = e.touches[0].clientX;
+                touchStartY = e.touches[0].clientY;
+            }
+        });
+
+        window.addEventListener('touchend', e => {
+            if (!player || !player.alive || e.changedTouches.length === 0) return;
+            const dx = e.changedTouches[0].clientX - touchStartX;
+            const dy = e.changedTouches[0].clientY - touchStartY;
+
+            let turnDir = null;
+            if (Math.abs(dx) > Math.abs(dy)) {
+                if (Math.abs(dx) > 20) turnDir = dx > 0 ? DIR.RIGHT : DIR.LEFT;
+            } else {
+                if (Math.abs(dy) > 20) turnDir = dy > 0 ? DIR.DOWN : DIR.UP;
             }
 
-            // Render Particles
-            for (let pt of particles) {
-                pt.draw(ctx);
+            if (turnDir) {
+                player.setDirection(turnDir);
+                if (!isHost && hostConnection) {
+                    hostConnection.send({
+                        type: 'INPUT',
+                        peerId: myPeerId,
+                        dir: turnDir
+                    });
+                }
             }
+        });
 
-            // Floating Texts
-            for (let ft of floatingTexts) {
-                ctx.save();
-                ctx.globalAlpha = ft.life;
-                ctx.font = 'bold 16px Orbitron';
-                ctx.fillStyle = ft.color;
-                ctx.shadowColor = ft.color;
-                ctx.shadowBlur = 10;
-                ctx.fillText(ft.text, ft.x, ft.y);
-                ctx.restore();
-            }
-
-            ctx.restore();
-
-            drawMinimap();
-
-            animationFrameId = requestAnimationFrame(gameLoop);
-        }
-
+        // Event Listeners
         document.getElementById('playBtn').addEventListener('click', () => {
             sound.init();
-            const name = document.getElementById('playerNameInput').value.trim() || 'Rider_X';
-            document.getElementById('playBtnText').innerText = 'CONNECTING...';
-            
+            const name = document.getElementById('playerNameInput').value.trim() || 'Rider_99';
+            document.getElementById('playBtnText').innerText = 'INITIALIZING...';
+
             initSeamlessNetwork(name, () => {
                 initGame(name);
             });
         });
 
         document.getElementById('restartBtn').addEventListener('click', () => {
-            const name = document.getElementById('playerNameInput').value.trim() || 'Rider_X';
+            const name = document.getElementById('playerNameInput').value.trim() || 'Rider_99';
             initGame(name);
         });
     </script>
