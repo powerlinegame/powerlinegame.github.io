@@ -160,8 +160,8 @@
             width: 10px;
             height: 10px;
             border-radius: 50%;
-            background-color: #39ff14;
-            box-shadow: 0 0 8px #39ff14;
+            background-color: #ffaa00;
+            box-shadow: 0 0 8px #ffaa00;
         }
 
         /* --- HUD ELEMENTS --- */
@@ -336,7 +336,7 @@
 
             <div class="status-text">
                 <div class="status-dot" id="status-dot"></div>
-                <span id="status-msg">Ready to connect to global room...</span>
+                <span id="status-msg">Searching for available lobby...</span>
             </div>
         </div>
     </div>
@@ -382,6 +382,7 @@
         const GRID_SPACING = 40;
         const MIN_SAFE_DIST = 300;
         const BOT_TARGET_COUNT = 8;
+        const HOST_ROOM_ID = 'powerline-global-shared-lobby';
 
         const canvas = document.getElementById('game-canvas');
         const ctx = canvas.getContext('2d');
@@ -394,17 +395,16 @@
         let myPlayer = null;
 
         // Shared Game State
-        let players = {}; // id -> player object
-        let foodPellets = []; // array of {x, y, color, size, val}
+        let players = {};
+        let foodPellets = [];
         let sparkParticles = [];
 
-        // PeerJS Networking
+        // Networking
         let peer = null;
+        let hostConnection = null;
         let connections = {};
         let isHost = false;
-        let hostId = 'powerline-global-room-2026';
 
-        // Keyboard Controls
         const keys = {};
 
         // --- PLAYER CLASS ---
@@ -413,16 +413,14 @@
                 this.id = id;
                 this.name = name || 'Rider';
                 this.isBot = isBot;
-                this.dir = { x: 1, y: 0 }; // Current direction
+                this.dir = { x: 1, y: 0 };
                 this.nextDir = { x: 1, y: 0 };
                 this.speed = BASE_SPEED;
                 this.isBoosting = false;
                 this.score = 0;
-                this.maxLength = 40;
                 this.alive = true;
                 this.color = isBot ? '#ff0055' : '#39ff14';
 
-                // Path points: Head is path[0]
                 this.path = [];
                 const initialLength = 40;
                 for (let i = 0; i < initialLength; i++) {
@@ -430,7 +428,7 @@
                 }
 
                 this.botTimer = 0;
-                this.botTarget = null;
+                this.botAggroTarget = null;
             }
 
             get head() {
@@ -440,21 +438,18 @@
             update() {
                 if (!this.alive) return;
 
-                // Handle Direction Turn (Prevent 180-degree self reversal)
+                // Handle Turn Changes
                 if ((this.nextDir.x !== 0 && this.nextDir.x !== -this.dir.x) ||
                     (this.nextDir.y !== 0 && this.nextDir.y !== -this.dir.y)) {
                     this.dir = { ...this.nextDir };
                 }
 
-                // AI Logic for Bots
                 if (this.isBot) {
                     this.updateBot();
                 }
 
-                // Boost check relative to other players' line segments
                 this.checkBoosting();
 
-                // Move Head
                 const newHead = {
                     x: this.head.x + this.dir.x * this.speed,
                     y: this.head.y + this.dir.y * this.speed
@@ -462,23 +457,21 @@
 
                 this.path.unshift(newHead);
 
-                // Trim tail based on current score/length
                 const targetPathLength = Math.floor(40 + (this.score / 2));
                 while (this.path.length > targetPathLength) {
                     this.path.pop();
                 }
 
-                // Check Wall Collisions
+                // Wall Collisions
                 if (newHead.x < 0 || newHead.x > WORLD_SIZE || newHead.y < 0 || newHead.y > WORLD_SIZE) {
                     killPlayer(this, null, 'wall');
                     return;
                 }
 
-                // Collect Food Pellets
+                // Collect Food
                 for (let i = foodPellets.length - 1; i >= 0; i--) {
                     const p = foodPellets[i];
-                    const dist = Math.hypot(newHead.x - p.x, newHead.y - p.y);
-                    if (dist < LINE_WIDTH + p.size) {
+                    if (Math.hypot(newHead.x - p.x, newHead.y - p.y) < LINE_WIDTH + p.size) {
                         this.score += p.val;
                         foodPellets.splice(i, 1);
                         if (isHost && foodPellets.length < 200) {
@@ -487,7 +480,6 @@
                     }
                 }
 
-                // Check Self & Enemy Body Collisions
                 this.checkCollisions();
             }
 
@@ -499,13 +491,10 @@
                     const other = players[pid];
                     if (!other.alive || other.id === this.id) continue;
 
-                    // Sample line segments of other player
                     for (let i = 0; i < other.path.length - 5; i += 4) {
                         const pt = other.path[i];
-                        const dist = Math.hypot(this.head.x - pt.x, this.head.y - pt.y);
-                        if (dist < boostDistThreshold) {
+                        if (Math.hypot(this.head.x - pt.x, this.head.y - pt.y) < boostDistThreshold) {
                             boosting = true;
-                            // Add spark particles
                             if (Math.random() < 0.4) {
                                 sparkParticles.push({
                                     x: this.head.x + (Math.random() - 0.5) * 10,
@@ -524,7 +513,7 @@
 
                 this.isBoosting = boosting;
                 this.speed = boosting ? BOOST_SPEED : BASE_SPEED;
-                if (boosting) this.score += 0.1; // Passive drafting score gain
+                if (boosting) this.score += 0.1;
             }
 
             checkCollisions() {
@@ -534,13 +523,11 @@
                     const other = players[pid];
                     if (!other.alive) continue;
 
-                    // Skip recent head points on self to allow turns
                     const startIndex = (other.id === this.id) ? 25 : 0;
 
                     for (let i = startIndex; i < other.path.length - 1; i += 2) {
                         const p1 = other.path[i];
-                        const dist = Math.hypot(head.x - p1.x, head.y - p1.y);
-                        if (dist < LINE_WIDTH * 0.85) {
+                        if (Math.hypot(head.x - p1.x, head.y - p1.y) < LINE_WIDTH * 0.85) {
                             killPlayer(this, other, other.id === this.id ? 'self' : 'player');
                             return;
                         }
@@ -548,40 +535,80 @@
                 }
             }
 
+            // LEADER SWARM AI LOGIC
             updateBot() {
                 this.botTimer++;
 
-                // Turn logic with safety raycasting
-                const aheadX = this.head.x + this.dir.x * 60;
-                const aheadY = this.head.y + this.dir.y * 60;
-
-                let obstacleAhead = aheadX < 50 || aheadX > WORLD_SIZE - 50 || aheadY < 50 || aheadY > WORLD_SIZE - 50;
-
-                if (!obstacleAhead) {
-                    for (let pid in players) {
-                        const other = players[pid];
-                        if (!other.alive) continue;
-                        const start = (other.id === this.id) ? 20 : 0;
-                        for (let i = start; i < other.path.length; i += 5) {
-                            if (Math.hypot(aheadX - other.path[i].x, aheadY - other.path[i].y) < 40) {
-                                obstacleAhead = true;
-                                break;
-                            }
-                        }
-                        if (obstacleAhead) break;
+                // Find Leader
+                let leader = null;
+                let topScore = -1;
+                for (let pid in players) {
+                    if (players[pid].alive && players[pid].score > topScore) {
+                        topScore = players[pid].score;
+                        leader = players[pid];
                     }
                 }
 
-                if (obstacleAhead || this.botTimer > 120) {
-                    this.botTimer = 0;
-                    // Pick valid 90-degree direction
-                    const possibleDirs = this.dir.x !== 0 ? [{ x: 0, y: 1 }, { x: 0, y: -1 }] : [{ x: 1, y: 0 }, { x: -1, y: 0 }];
-                    this.nextDir = possibleDirs[Math.floor(Math.random() * possibleDirs.length)];
+                // Direction choices
+                const possibleDirs = this.dir.x !== 0 ? 
+                    [{ x: 0, y: 1 }, { x: 0, y: -1 }] : 
+                    [{ x: 1, y: 0 }, { x: -1, y: 0 }];
+
+                let wantedDir = this.dir;
+
+                // Behavior: Seek and swarm around leader
+                if (leader && leader.id !== this.id && Math.random() < 0.3) {
+                    const targetX = leader.head.x;
+                    const targetY = leader.head.y;
+                    const dx = targetX - this.head.x;
+                    const dy = targetY - this.head.y;
+
+                    if (Math.abs(dx) > Math.abs(dy)) {
+                        wantedDir = { x: Math.sign(dx), y: 0 };
+                    } else {
+                        wantedDir = { x: 0, y: Math.sign(dy) };
+                    }
+                }
+
+                // Check collision safety for next steps
+                let safeDir = null;
+                for (let candidate of [wantedDir, ...possibleDirs]) {
+                    if ((candidate.x !== 0 && candidate.x === -this.dir.x) || 
+                        (candidate.y !== 0 && candidate.y === -this.dir.y)) continue;
+
+                    const testX = this.head.x + candidate.x * 60;
+                    const testY = this.head.y + candidate.y * 60;
+
+                    let unsafe = testX < 60 || testX > WORLD_SIZE - 60 || testY < 60 || testY > WORLD_SIZE - 60;
+
+                    if (!unsafe) {
+                        for (let pid in players) {
+                            const other = players[pid];
+                            if (!other.alive) continue;
+                            const start = (other.id === this.id) ? 20 : 0;
+                            for (let i = start; i < other.path.length; i += 6) {
+                                if (Math.hypot(testX - other.path[i].x, testY - other.path[i].y) < 45) {
+                                    unsafe = true;
+                                    break;
+                                }
+                            }
+                            if (unsafe) break;
+                        }
+                    }
+
+                    if (!unsafe) {
+                        safeDir = candidate;
+                        break;
+                    }
+                }
+
+                if (safeDir) {
+                    this.nextDir = safeDir;
                 }
             }
         }
 
-        // --- SAFE SPAWN ROUTINE ---
+        // --- SAFE SPAWN FINDER ---
         function findSafeSpawn() {
             let attempt = 0;
             while (attempt < 100) {
@@ -602,12 +629,10 @@
             return { x: WORLD_SIZE / 2, y: WORLD_SIZE / 2 };
         }
 
-        // --- KILL PLAYER & FOOD DROP ---
         function killPlayer(victim, killer, cause) {
             if (!victim.alive) return;
             victim.alive = false;
 
-            // Explode line into food bits (Image 1 visual match)
             for (let i = 0; i < victim.path.length; i += 3) {
                 const pt = victim.path[i];
                 foodPellets.push({
@@ -619,7 +644,6 @@
                 });
             }
 
-            // Create killfeed notice
             let msg = '';
             if (cause === 'wall') {
                 msg = `<b>${victim.name}</b> 🧱 Wall`;
@@ -627,18 +651,16 @@
                 msg = `<b>${victim.name}</b> ⚡ <b>${victim.name}</b>`;
             } else if (killer) {
                 msg = `<b>${killer.name}</b> ⚡ <b>${victim.name}</b>`;
-                killer.score += 50; // Reward killer
+                killer.score += 50;
             }
             addKillfeed(msg);
 
-            // Handle Local Player Death
             if (victim.id === myId) {
                 document.getElementById('final-score').innerText = Math.floor(victim.score);
                 document.getElementById('final-length').innerText = victim.path.length;
                 document.getElementById('death-screen').style.display = 'flex';
             }
 
-            // Host Bot Management
             if (isHost && victim.isBot) {
                 delete players[victim.id];
                 setTimeout(() => {
@@ -660,7 +682,7 @@
 
         function spawnBot() {
             const botId = 'bot_' + Math.random().toString(36).substr(2, 6);
-            const botNames = ['CyberNeon', 'GridGhost', 'NullPointer', 'ByteSlayer', 'LaserTail', 'VoltRunner'];
+            const botNames = ['CyberNeon', 'GridGhost', 'NullPointer', 'ByteSlayer', 'LaserTail', 'VoltRunner', 'GridOverlord'];
             const name = botNames[Math.floor(Math.random() * botNames.length)];
             const pos = findSafeSpawn();
             players[botId] = new Player(botId, name, pos.x, pos.y, true);
@@ -676,32 +698,36 @@
             });
         }
 
-        // --- NETWORK & PEERJS HOST MIGRATION ---
+        // --- AUTOMATIC LOBBY JOIN / HOSTING SYSTEM ---
         function initNetwork() {
             peer = new Peer();
 
             peer.on('open', (id) => {
                 myId = id;
-                document.getElementById('status-msg').innerText = 'Connected. Joining Room...';
-                tryConnectToHost();
+                document.getElementById('status-msg').innerText = 'Searching for existing room...';
+                attemptToJoinHost();
             });
 
             peer.on('error', () => {
-                // Host does not exist -> Become Host
                 becomeHost();
             });
         }
 
-        function tryConnectToHost() {
-            const conn = peer.connect(hostId);
+        function attemptToJoinHost() {
+            const conn = peer.connect(HOST_ROOM_ID, { relaxed: true });
+            let connected = false;
+
             conn.on('open', () => {
+                connected = true;
                 isHost = false;
-                document.getElementById('status-msg').innerText = 'Connected to Host!';
+                hostConnection = conn;
+                document.getElementById('status-msg').innerText = 'Joined Online Room!';
+                document.getElementById('status-dot').style.backgroundColor = '#39ff14';
+                document.getElementById('status-dot').style.boxShadow = '0 0 8px #39ff14';
             });
 
             conn.on('data', (data) => {
                 if (data.type === 'sync') {
-                    // Sync full world state from Host
                     foodPellets = data.pellets;
                     for (let pid in data.players) {
                         if (pid !== myId) {
@@ -711,28 +737,42 @@
                 }
             });
 
+            // Timeout: Become Host if no active shared lobby responds
             setTimeout(() => {
-                if (!conn.open && !isHost) {
+                if (!connected) {
+                    conn.close();
                     becomeHost();
                 }
-            }, 2000);
+            }, 1800);
         }
 
         function becomeHost() {
-            isHost = true;
-            document.getElementById('status-msg').innerText = 'Hosting Room (Auto-Server Active)';
+            peer.destroy();
+            peer = new Peer(HOST_ROOM_ID);
 
-            // Spawn initial ambient pellets and bots
-            for (let i = 0; i < 200; i++) spawnPellet();
-            for (let i = 0; i < BOT_TARGET_COUNT; i++) spawnBot();
+            peer.on('open', (id) => {
+                myId = id;
+                isHost = true;
+                document.getElementById('status-msg').innerText = 'Hosting Active Lobby (Server Online)';
+                document.getElementById('status-dot').style.backgroundColor = '#39ff14';
+                document.getElementById('status-dot').style.boxShadow = '0 0 8px #39ff14';
 
-            peer.on('connection', (conn) => {
-                connections[conn.peer] = conn;
-                conn.on('data', (data) => {
-                    if (data.type === 'input' && players[conn.peer]) {
-                        players[conn.peer].nextDir = data.dir;
-                    }
+                for (let i = 0; i < 200; i++) spawnPellet();
+                for (let i = 0; i < BOT_TARGET_COUNT; i++) spawnBot();
+
+                peer.on('connection', (conn) => {
+                    connections[conn.peer] = conn;
+                    conn.on('data', (data) => {
+                        if (data.type === 'input' && players[conn.peer]) {
+                            players[conn.peer].nextDir = data.dir;
+                        }
+                    });
                 });
+            });
+
+            peer.on('error', () => {
+                // Shared room active -> retry client connection
+                setTimeout(initNetwork, 1000);
             });
         }
 
@@ -749,20 +789,18 @@
 
             if (newDir) {
                 myPlayer.nextDir = newDir;
-                if (!isHost && connections[hostId]) {
-                    connections[hostId].send({ type: 'input', dir: newDir });
+                if (!isHost && hostConnection && hostConnection.open) {
+                    hostConnection.send({ type: 'input', dir: newDir });
                 }
             }
         });
 
         // --- GAME LOOP ---
         function gameLoop() {
-            // Update Local Player & Entities
             for (let pid in players) {
                 players[pid].update();
             }
 
-            // Sync logic if host
             if (isHost) {
                 const serializedPlayers = {};
                 for (let pid in players) {
@@ -774,11 +812,12 @@
                     };
                 }
                 for (let connId in connections) {
-                    connections[connId].send({ type: 'sync', players: serializedPlayers, pellets: foodPellets });
+                    if (connections[connId].open) {
+                        connections[connId].send({ type: 'sync', players: serializedPlayers, pellets: foodPellets });
+                    }
                 }
             }
 
-            // Center Camera on local player
             if (myPlayer && myPlayer.alive) {
                 camera.x += (myPlayer.head.x - camera.x) * 0.1;
                 camera.y += (myPlayer.head.y - camera.y) * 0.1;
@@ -788,20 +827,18 @@
             requestAnimationFrame(gameLoop);
         }
 
-        // --- RENDERING (Exact Image 1 Style) ---
+        // --- RENDERING ---
         function render() {
             canvas.width = window.innerWidth;
             canvas.height = window.innerHeight;
 
-            // Clear Screen
             ctx.fillStyle = '#060d1a';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
 
             ctx.save();
-            // Translate Camera
             ctx.translate(canvas.width / 2 - camera.x, canvas.height / 2 - camera.y);
 
-            // Draw Background Circles Grid (Match Image 1)
+            // Dotted Grid
             ctx.fillStyle = 'rgba(255, 255, 255, 0.03)';
             const startX = Math.floor((camera.x - canvas.width / 2) / GRID_SPACING) * GRID_SPACING;
             const endX = camera.x + canvas.width / 2;
@@ -816,12 +853,12 @@
                 }
             }
 
-            // Draw World Outer Boundary
+            // Boundary
             ctx.strokeStyle = '#ff0055';
             ctx.lineWidth = 6;
             ctx.strokeRect(0, 0, WORLD_SIZE, WORLD_SIZE);
 
-            // Draw Food Pellets (Rounded Rects/Glows)
+            // Pellets
             foodPellets.forEach(p => {
                 ctx.fillStyle = p.color;
                 ctx.shadowColor = p.color;
@@ -830,9 +867,9 @@
                 ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
                 ctx.fill();
             });
-            ctx.shadowBlur = 0; // Reset Shadow
+            ctx.shadowBlur = 0;
 
-            // Find Top Leader
+            // Leader Crown Lookup
             let topPlayer = null;
             let maxScore = -1;
             for (let pid in players) {
@@ -842,12 +879,11 @@
                 }
             }
 
-            // Draw Players / Lines
+            // Players / Bots
             for (let pid in players) {
                 const p = players[pid];
                 if (!p.alive || p.path.length < 2) continue;
 
-                // Draw Neon Line Path
                 ctx.strokeStyle = p.color;
                 ctx.lineWidth = LINE_WIDTH;
                 ctx.lineCap = 'round';
@@ -862,20 +898,17 @@
                 }
                 ctx.stroke();
 
-                // Draw Head Circle Glow (Match Image 1)
                 const head = p.head;
                 ctx.fillStyle = '#ffffff';
                 ctx.beginPath();
                 ctx.arc(head.x, head.y, LINE_WIDTH * 0.7, 0, Math.PI * 2);
                 ctx.fill();
 
-                // Draw Crown for Leader
                 if (topPlayer && topPlayer.id === p.id) {
                     ctx.font = '16px sans-serif';
                     ctx.fillText('👑', head.x - 8, head.y - 20);
                 }
 
-                // Draw Name Tag
                 ctx.shadowBlur = 0;
                 ctx.font = 'bold 12px Arial';
                 ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
@@ -883,7 +916,7 @@
                 ctx.fillText(p.name, head.x, head.y + 25);
             }
 
-            // Draw Sparks
+            // Sparks
             for (let i = sparkParticles.length - 1; i >= 0; i--) {
                 const sp = sparkParticles[i];
                 ctx.fillStyle = sp.color;
@@ -896,7 +929,6 @@
 
             ctx.restore();
 
-            // Render HUD
             renderLeaderboard();
             renderMinimap();
         }
@@ -940,7 +972,6 @@
             myPlayer = new Player(myId, name, pos.x, pos.y, false);
             players[myId] = myPlayer;
 
-            // Instantly snap camera to player
             camera.x = pos.x;
             camera.y = pos.y;
 
@@ -953,7 +984,7 @@
             startGame();
         }
 
-        // --- INITIALIZATION ---
+        // --- INIT ---
         initNetwork();
         requestAnimationFrame(gameLoop);
     </script>
