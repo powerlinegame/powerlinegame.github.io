@@ -4,11 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Powerline.io</title>
-    <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- PeerJS CDN -->
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
-    <!-- FontAwesome CDN -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
     <script>
@@ -18,12 +15,13 @@
                 extend: {
                     colors: {
                         cyber: {
-                            bg: '#02040a',
+                            bg: '#040d1a',
                             cyan: '#00f3ff',
-                            pink: '#ff0055',
+                            lime: '#ccff00',
+                            orange: '#ff6600',
+                            red: '#ff0044',
                             yellow: '#fcee0a',
-                            green: '#00ff66',
-                            dark: '#080d1a'
+                            dark: '#081426'
                         }
                     }
                 }
@@ -32,7 +30,7 @@
     </script>
     
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Ubuntu:wght@500;700&family=Orbitron:wght@700;900&display=swap');
         
         * {
             box-sizing: border-box;
@@ -41,29 +39,21 @@
         }
 
         body {
-            font-family: 'Orbitron', monospace;
-            background-color: #02040a;
+            font-family: 'Ubuntu', sans-serif;
+            background-color: #040d1a;
             color: #f3f4f6;
             overflow: hidden;
             touch-action: none;
         }
 
-        .neon-glow-cyan {
-            text-shadow: 0 0 8px rgba(0, 243, 255, 0.8), 0 0 16px rgba(0, 243, 255, 0.4);
-        }
-
-        .neon-glow-pink {
-            text-shadow: 0 0 8px rgba(255, 0, 85, 0.8), 0 0 16px rgba(255, 0, 85, 0.4);
-        }
-
-        .neon-border-cyan {
-            box-shadow: 0 0 15px rgba(0, 243, 255, 0.3), inset 0 0 15px rgba(0, 243, 255, 0.15);
+        .neon-glow {
+            text-shadow: 0 0 8px rgba(204, 255, 0, 0.8), 0 0 16px rgba(204, 255, 0, 0.4);
         }
 
         .cyber-panel {
-            background: rgba(8, 13, 26, 0.85);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(0, 243, 255, 0.3);
+            background: rgba(4, 13, 26, 0.85);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(0, 243, 255, 0.25);
         }
 
         canvas {
@@ -82,34 +72,34 @@
         <!-- Top HUD Row -->
         <div class="flex justify-between items-start">
             <!-- Player Stats Box -->
-            <div class="cyber-panel px-5 py-3 rounded-xl border border-cyber-cyan/40 neon-border-cyan">
-                <div class="text-[10px] text-cyber-cyan font-bold tracking-widest uppercase flex items-center gap-2">
+            <div class="cyber-panel px-5 py-3 rounded-xl border border-cyber-lime/40 shadow-lg">
+                <div class="text-[10px] text-cyber-lime font-bold tracking-widest uppercase flex items-center gap-2">
                     <span>SCORE</span>
-                    <span id="roleBadge" class="text-[9px] px-1.5 py-0.5 rounded bg-cyber-cyan/20 border border-cyber-cyan/40 text-cyber-cyan">INIT...</span>
+                    <span id="roleBadge" class="text-[9px] px-1.5 py-0.5 rounded bg-cyber-lime/20 border border-cyber-lime/40 text-cyber-lime">INIT...</span>
                 </div>
-                <div id="hudScore" class="text-2xl md:text-3xl font-black text-white neon-glow-cyan">0</div>
-                <div class="mt-1 text-xs text-gray-400">Length: <span id="hudLength" class="text-cyber-yellow font-bold">50</span></div>
+                <div id="hudScore" class="text-2xl md:text-3xl font-black text-white neon-glow">0</div>
+                <div class="mt-0.5 text-xs text-gray-300">Length: <span id="hudLength" class="text-cyber-yellow font-bold">40</span></div>
             </div>
 
             <!-- Minimap -->
-            <div class="cyber-panel p-1.5 rounded-xl border border-cyber-cyan/40 w-32 h-32 md:w-40 md:h-40 relative overflow-hidden hidden sm:block">
-                <div class="absolute top-1 left-1.5 text-[9px] text-cyber-cyan tracking-wider z-10 font-bold">RADAR</div>
+            <div class="cyber-panel p-1 rounded-xl border border-cyber-cyan/30 w-28 h-28 md:w-36 md:h-36 relative overflow-hidden hidden sm:block">
+                <div class="absolute top-1 left-1.5 text-[8px] text-cyber-cyan font-bold tracking-wider z-10">RADAR</div>
                 <canvas id="minimapCanvas" class="w-full h-full rounded"></canvas>
             </div>
 
             <!-- Leaderboard -->
-            <div class="cyber-panel px-4 py-3 rounded-xl border border-cyber-cyan/40 w-60 md:w-72">
+            <div class="cyber-panel px-4 py-3 rounded-xl border border-cyber-cyan/30 w-56 md:w-64">
                 <div class="text-xs text-cyber-cyan font-bold tracking-widest uppercase mb-2 flex items-center justify-between">
-                    <span>GRID RANKINGS</span>
-                    <i class="fa-solid fa-trophy text-cyber-yellow text-xs"></i>
+                    <span>GRID LEADERS</span>
+                    <i class="fa-solid fa-crown text-cyber-yellow text-xs"></i>
                 </div>
                 <div id="leaderboardList" class="space-y-1 text-xs">
-                    <!-- Leaderboard entries injected dynamically -->
+                    <!-- Leaderboard injected dynamically -->
                 </div>
             </div>
         </div>
 
-        <!-- Center Notification Feed -->
+        <!-- Center Event Notifications -->
         <div id="eventNotifications" class="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-col items-center pointer-events-none space-y-1.5 z-30"></div>
 
         <!-- Bottom Left: Killfeed -->
@@ -119,11 +109,11 @@
 
         <!-- Bottom Controls / Status Bar -->
         <div class="flex justify-between items-end">
-            <div class="text-xs text-gray-500 font-mono hidden md:block">
-                Grid System v4.0 | 90° Axis Lock Engine
+            <div class="text-xs text-gray-400 font-mono hidden md:block">
+                Powerline Engine v2.0 | Proximity Electricity Boost
             </div>
             <div class="cyber-panel px-3 py-1.5 rounded-lg text-[11px] text-gray-300 flex items-center space-x-2">
-                <span class="text-cyber-cyan"><i class="fa-solid fa-keyboard mr-1"></i> WASD / Arrows</span>
+                <span class="text-cyber-lime"><i class="fa-solid fa-keyboard mr-1"></i> WASD / Arrow Keys</span>
                 <span class="text-gray-500">|</span>
                 <span class="text-cyber-yellow"><i class="fa-solid fa-bolt mr-1"></i> Ride Parallel to Boost</span>
             </div>
@@ -132,34 +122,34 @@
 
     <!-- Main Entry Modal -->
     <div id="menuModal" class="absolute inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center z-50 p-4">
-        <div class="cyber-panel p-8 rounded-2xl border-2 border-cyber-cyan max-w-md w-full text-center neon-border-cyan shadow-2xl">
-            <div class="mb-2 text-cyber-cyan font-bold tracking-widest text-xs uppercase">Unblocked Plus</div>
-            <h1 class="text-3xl md:text-4xl font-black text-white mb-6 tracking-wider neon-glow-cyan">POWERLINE</h1>
+        <div class="cyber-panel p-8 rounded-2xl border-2 border-cyber-lime max-w-md w-full text-center shadow-2xl">
+            <div class="mb-2 text-cyber-lime font-bold tracking-widest text-xs uppercase">Unblocked Recreations Plus</div>
+            <h1 class="text-3xl md:text-4xl font-black text-white mb-6 tracking-wider neon-glow">POWERLINE.IO</h1>
             
             <div class="space-y-4 mb-6 text-left">
                 <div>
-                    <label class="block text-xs text-cyber-cyan font-bold mb-1 uppercase tracking-wider">Rider Call Sign</label>
-                    <input type="text" id="playerNameInput" value="Rider_99" maxlength="12" class="w-full bg-cyber-dark border border-cyber-cyan/50 rounded-lg px-4 py-3 text-white font-bold focus:outline-none focus:border-cyber-cyan focus:ring-1 focus:ring-cyber-cyan">
+                    <label class="block text-xs text-cyber-lime font-bold mb-1 uppercase tracking-wider">Player Name</label>
+                    <input type="text" id="playerNameInput" value="PowerRider" maxlength="14" class="w-full bg-cyber-dark border border-cyber-lime/50 rounded-lg px-4 py-3 text-white font-bold focus:outline-none focus:border-cyber-lime focus:ring-1 focus:ring-cyber-lime">
                 </div>
 
-                <button id="playBtn" class="w-full bg-gradient-to-r from-cyan-500 via-blue-600 to-cyber-pink hover:from-cyan-400 hover:to-pink-500 text-white font-black py-4 px-6 rounded-xl shadow-lg transition transform hover:-translate-y-0.5 text-lg uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer">
+                <button id="playBtn" class="w-full bg-gradient-to-r from-lime-400 to-green-600 hover:from-lime-300 hover:to-green-500 text-cyber-dark font-black py-4 px-6 rounded-xl shadow-lg transition transform hover:-translate-y-0.5 text-lg uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer">
                     <i class="fa-solid fa-play"></i>
-                    <span id="playBtnText">PLAY</span>
+                    <span id="playBtnText">PLAY NOW</span>
                 </button>
             </div>
 
             <div id="connectionStatus" class="text-xs text-gray-400 border-t border-gray-800/80 pt-4 flex items-center justify-center gap-2">
-                <i class="fa-solid fa-wifi text-cyber-cyan animate-pulse"></i>
-                <span id="statusText">Ready to enable p2p connection . . .</span>
+                <i class="fa-solid fa-wifi text-cyber-lime animate-pulse"></i>
+                <span id="statusText">Ready to connect via P2P . . .</span>
             </div>
         </div>
     </div>
 
     <!-- Game Over Modal -->
-    <div id="gameOverModal" class="absolute inset-0 bg-black/90 backdrop-blur-lg hidden flex items-center justify-center z-50 p-4">
-        <div class="cyber-panel p-8 rounded-2xl border-2 border-cyber-pink max-w-md w-full text-center shadow-2xl">
-            <div class="text-cyber-pink font-black text-xs tracking-widest uppercase mb-1">SYSTEM DEREGISTERED</div>
-            <h2 class="text-4xl font-black text-white mb-6 tracking-wider neon-glow-pink">REZED</h2>
+    <div id="gameOverModal" class="absolute inset-0 bg-black/85 backdrop-blur-md hidden flex items-center justify-center z-50 p-4">
+        <div class="cyber-panel p-8 rounded-2xl border-2 border-cyber-red max-w-md w-full text-center shadow-2xl">
+            <div class="text-cyber-red font-black text-xs tracking-widest uppercase mb-1">CUT</div>
+            <h2 class="text-4xl font-black text-white mb-6 tracking-wider">YOU DIED</h2>
 
             <div class="grid grid-cols-2 gap-4 mb-6 bg-cyber-dark p-4 rounded-xl border border-gray-800">
                 <div>
@@ -168,26 +158,28 @@
                 </div>
                 <div>
                     <div class="text-xs text-gray-400 font-bold">PEAK LENGTH</div>
-                    <div id="finalLength" class="text-2xl font-black text-cyber-cyan">0</div>
+                    <div id="finalLength" class="text-2xl font-black text-cyber-lime">0</div>
                 </div>
             </div>
 
-            <button id="restartBtn" class="w-full bg-gradient-to-r from-cyber-cyan to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-cyber-dark font-black py-4 px-6 rounded-xl shadow-lg transition transform hover:-translate-y-0.5 text-lg uppercase tracking-wider cursor-pointer">
-                Re-Rez Grid
+            <button id="restartBtn" class="w-full bg-gradient-to-r from-cyber-lime to-green-500 hover:from-lime-300 hover:to-green-400 text-cyber-dark font-black py-4 px-6 rounded-xl shadow-lg transition transform hover:-translate-y-0.5 text-lg uppercase tracking-wider cursor-pointer">
+                PLAY AGAIN
             </button>
         </div>
     </div>
 
     <script>
-        // Game Constants
-        const WORLD_SIZE = 3600;
-        const CELL_SIZE = 20; // Crisp 20px Grid Snapping
-        const BASE_SPEED = 200; // Grid units per second
-        const BOOST_SPEED = 360; // Speed when boosted by riding adjacent
+        // Game Constants & Tuning
+        const WORLD_SIZE = 3200;
+        const BASE_SPEED = 145;      // Smooth classic Powerline speed
+        const BOOST_SPEED = 240;     // Speed when electric boosted
+        const LINE_WIDTH = 8;        // Line width matching Image 1
+        const HEAD_RADIUS = 7;       // Circular head radius matching Image 1
+        const PELLET_COUNT = 380;    // Active food bits on map
         const TARGET_ROOM_CAPACITY = 10;
-        const LOBBY_ID_PREFIX = 'powerline-tron-classic-grid-v4-';
+        const LOBBY_ID_PREFIX = 'powerline-io-authentic-v1-';
 
-        // Direction Vectors (Strict 90-degree orthogonal movement)
+        // Strict 90-degree movement vectors
         const DIR = {
             UP: { x: 0, y: -1 },
             DOWN: { x: 0, y: 1 },
@@ -195,7 +187,7 @@
             RIGHT: { x: 1, y: 0 }
         };
 
-        // Sound Synthesizer Engine
+        // Synthesized Web Audio Sound Engine
         class SoundEngine {
             constructor() {
                 this.ctx = null;
@@ -220,12 +212,11 @@
                     osc.stop(this.ctx.currentTime + duration);
                 } catch(e) {}
             }
-            turn() { this.playTone(400, 'square', 0.05, 0.03); }
-            boost() { this.playTone(600, 'sawtooth', 0.1, 0.04); }
-            scoreEvent() { this.playTone(880, 'sine', 0.15, 0.08); }
-            closeCall() { this.playTone(520, 'triangle', 0.1, 0.05); }
-            crash() { this.playTone(100, 'sawtooth', 0.5, 0.2); }
-            kill() { this.playTone(700, 'square', 0.25, 0.12); }
+            turn() { this.playTone(380, 'sine', 0.04, 0.02); }
+            boost() { this.playTone(620, 'sawtooth', 0.08, 0.03); }
+            eat() { this.playTone(520 + Math.random() * 200, 'sine', 0.06, 0.04); }
+            crash() { this.playTone(90, 'sawtooth', 0.4, 0.2); }
+            kill() { this.playTone(750, 'square', 0.2, 0.1); }
         }
 
         const sound = new SoundEngine();
@@ -239,53 +230,111 @@
         function resizeCanvas() {
             canvas.width = window.innerWidth;
             canvas.height = window.innerHeight;
-            minimapCanvas.width = 160;
-            minimapCanvas.height = 160;
+            minimapCanvas.width = 140;
+            minimapCanvas.height = 140;
         }
         window.addEventListener('resize', resizeCanvas);
         resizeCanvas();
 
-        // Camera Tracking
+        // Camera smoothly tracking player
         const camera = {
             x: WORLD_SIZE / 2,
             y: WORLD_SIZE / 2,
             update(targetX, targetY) {
-                this.x += (targetX - this.x) * 0.15;
-                this.y += (targetY - this.y) * 0.15;
+                this.x += (targetX - this.x) * 0.12;
+                this.y += (targetY - this.y) * 0.12;
             }
         };
 
+        class Pellet {
+            constructor(x, y, value = 1) {
+                this.x = x;
+                this.y = y;
+                this.value = value;
+                this.radius = 4 + Math.min(value * 0.5, 6);
+                
+                // Colors matching Image 1 (Red, Orange, Yellow glowing energy bits)
+                const palette = ['#ff0044', '#ff4400', '#ffaa00', '#fcee0a', '#ccff00'];
+                this.color = palette[Math.floor(Math.random() * palette.length)];
+                this.pulse = Math.random() * Math.PI * 2;
+            }
+
+            draw(context) {
+                this.pulse += 0.05;
+                const pSize = this.radius + Math.sin(this.pulse) * 0.8;
+
+                context.save();
+                context.shadowColor = this.color;
+                context.shadowBlur = 10;
+                context.fillStyle = this.color;
+
+                // Draw rounded square diamond pellet shape like Image 1
+                context.beginPath();
+                context.roundRect(this.x - pSize / 2, this.y - pSize / 2, pSize, pSize, 2);
+                context.fill();
+
+                // Core highlight
+                context.fillStyle = '#ffffff';
+                context.fillRect(this.x - 1, this.y - 1, 2, 2);
+                context.restore();
+            }
+        }
+
+        class ElectricSpark {
+            constructor(x, y, color) {
+                this.x = x + (Math.random() - 0.5) * 12;
+                this.y = y + (Math.random() - 0.5) * 12;
+                this.color = color;
+                this.vx = (Math.random() - 0.5) * 4;
+                this.vy = (Math.random() - 0.5) * 4;
+                this.life = 1.0;
+                this.size = 2 + Math.random() * 3;
+            }
+            update() {
+                this.x += this.vx;
+                this.y += this.vy;
+                this.life -= 0.08;
+            }
+            draw(context) {
+                if (this.life <= 0) return;
+                context.save();
+                context.globalAlpha = Math.max(0, this.life);
+                context.fillStyle = this.color;
+                context.shadowColor = this.color;
+                context.shadowBlur = 6;
+                context.fillRect(this.x, this.y, this.size, this.size);
+                context.restore();
+            }
+        }
+
         class Rider {
-            constructor(id, name, gridX, gridY, dir, color, isBot = false) {
+            constructor(id, name, x, y, dir, color, isBot = false) {
                 this.id = id;
                 this.name = name;
-                this.gridX = gridX;
-                this.gridY = gridY;
-                this.dir = dir; // Current direction vector
-                this.nextDir = dir; // Queued 90-degree turn direction
-                this.color = color;
+                this.x = x;
+                this.y = y;
+                this.dir = dir;
+                this.nextDir = dir;
+                this.color = color; // e.g. '#ccff00' for neon yellow-green
                 this.isBot = isBot;
                 this.alive = true;
                 this.score = 0;
-                this.targetLength = 60; // Length in grid units
-                
-                // Continuous precise position on grid
-                this.x = gridX * CELL_SIZE + CELL_SIZE / 2;
-                this.y = gridY * CELL_SIZE + CELL_SIZE / 2;
+                this.targetLength = 40; // Length in canvas pixels
 
-                // Path turns points for continuous trail drawing
+                // Path turns points for continuous line rendering
                 this.path = [
                     { x: this.x, y: this.y }
                 ];
 
                 this.isBoosting = false;
+                this.sparks = [];
                 this.lastDraftTime = 0;
                 this.lastCloseCallTime = 0;
                 this.botTimer = 0;
             }
 
             setDirection(newDir) {
-                // Prevent 180-degree immediate reversal
+                // Prevent 180-degree instant reversal
                 if (newDir.x === -this.dir.x && newDir.y === -this.dir.y) return;
                 this.nextDir = newDir;
             }
@@ -293,53 +342,54 @@
             update(dt) {
                 if (!this.alive) return;
 
-                // Check parallel proximity to boost
+                // Check proximity parallel riding for boost
                 this.checkDraftingAndBoost();
 
                 const speed = this.isBoosting ? BOOST_SPEED : BASE_SPEED;
                 const moveDist = speed * dt;
 
-                let remaining = moveDist;
-
-                while (remaining > 0 && this.alive) {
-                    // Check if aligned with current cell center to execute queued turn
-                    const currentCellX = Math.floor(this.x / CELL_SIZE) * CELL_SIZE + CELL_SIZE / 2;
-                    const currentCellY = Math.floor(this.y / CELL_SIZE) * CELL_SIZE + CELL_SIZE / 2;
-
-                    const distToCenter = Math.hypot(currentCellX - this.x, currentCellY - this.y);
-
-                    // Execute turn if at or past cell center and direction queued
-                    if (this.nextDir !== this.dir && distToCenter <= remaining + 2) {
-                        this.x = currentCellX;
-                        this.y = currentCellY;
-                        this.dir = this.nextDir;
-                        this.path.push({ x: this.x, y: this.y });
-                        if (this === player) sound.turn();
-                    }
-
-                    // Move step
-                    const step = Math.min(remaining, CELL_SIZE / 2);
-                    this.x += this.dir.x * step;
-                    this.y += this.dir.y * step;
-                    remaining -= step;
-
-                    // Update head node of path
-                    if (this.path.length > 0) {
-                        this.path[this.path.length - 1] = { x: this.x, y: this.y };
-                    }
-
-                    // Grid Bounds Collision Check
-                    if (this.x < CELL_SIZE || this.x > WORLD_SIZE - CELL_SIZE || this.y < CELL_SIZE || this.y > WORLD_SIZE - CELL_SIZE) {
-                        this.die('wall');
-                        return;
-                    }
-
-                    // Check Body Collisions
-                    this.checkCollisions();
+                // Turn logic
+                if (this.nextDir !== this.dir) {
+                    this.dir = this.nextDir;
+                    this.path.push({ x: this.x, y: this.y });
+                    if (this === player) sound.turn();
                 }
 
-                // Trim path to maintain length limit
+                // Advance head position
+                this.x += this.dir.x * moveDist;
+                this.y += this.dir.y * moveDist;
+
+                // Update tip of path
+                if (this.path.length > 0) {
+                    this.path[this.path.length - 1] = { x: this.x, y: this.y };
+                }
+
+                // Check Wall Collision
+                if (this.x < 15 || this.x > WORLD_SIZE - 15 || this.y < 15 || this.y > WORLD_SIZE - 15) {
+                    this.die('wall');
+                    return;
+                }
+
+                // Check Eating Pellets
+                this.checkPelletCollisions();
+
+                // Check Body Collisions
+                this.checkCollisions();
+
+                // Trim tail path
                 this.trimPath();
+
+                // Update sparks
+                for (let i = this.sparks.length - 1; i >= 0; i--) {
+                    this.sparks[i].update();
+                    if (this.sparks[i].life <= 0) this.sparks.splice(i, 1);
+                }
+
+                // Spawn electricity sparks along sides when boosting (Image 1 aesthetic)
+                if (this.isBoosting) {
+                    this.sparks.push(new ElectricSpark(this.x, this.y, '#ffffff'));
+                    this.sparks.push(new ElectricSpark(this.x - this.dir.x * 10, this.y - this.dir.y * 10, this.color));
+                }
 
                 // Bot AI Logic
                 if (this.isBot && isHost) {
@@ -353,15 +403,15 @@
 
                 for (let other of players) {
                     if (!other.alive) continue;
-                    
-                    // Check distance to other player's lines
+
+                    // Check distance to other player line segments
                     for (let i = 0; i < other.path.length - 1; i++) {
                         const p1 = other.path[i];
                         const p2 = other.path[i + 1];
-                        
+
                         const dist = distToSegment({ x: this.x, y: this.y }, p1, p2);
 
-                        // Parallel riding zone (between 12px and 45px away)
+                        // Parallel riding proximity zone (12px to 42px)
                         if (dist > 10 && dist < 42) {
                             closeToLine = true;
                             break;
@@ -372,14 +422,34 @@
 
                 if (closeToLine) {
                     this.isBoosting = true;
-                    if (Date.now() - this.lastDraftTime > 500) {
-                        this.targetLength += 0.8;
-                        this.score += 5;
+                    if (Date.now() - this.lastDraftTime > 400) {
+                        this.targetLength += 0.6;
+                        this.score += 4;
                         if (this === player) {
-                            addFloatingText(this.x, this.y, '+5 BOOST', '#fcee0a');
+                            addFloatingText(this.x, this.y, '+4 BOOST', '#fcee0a');
                             sound.boost();
                         }
                         this.lastDraftTime = Date.now();
+                    }
+                }
+            }
+
+            checkPelletCollisions() {
+                for (let i = pellets.length - 1; i >= 0; i--) {
+                    const pel = pellets[i];
+                    const dist = Math.hypot(this.x - pel.x, this.y - pel.y);
+
+                    if (dist < HEAD_RADIUS + pel.radius + 2) {
+                        this.targetLength += pel.value * 2.5;
+                        this.score += pel.value * 10;
+                        if (this === player) sound.eat();
+
+                        pellets.splice(i, 1);
+
+                        // Respawn new random pellet if low
+                        if (pellets.length < PELLET_COUNT) {
+                            spawnRandomPellet();
+                        }
                     }
                 }
             }
@@ -392,7 +462,7 @@
 
                     const segmentCount = other.path.length - 1;
                     for (let i = 0; i < segmentCount; i++) {
-                        // Skip head segment of self to prevent self-instant crash
+                        // Skip immediate head segment of self
                         if (other === this && i >= segmentCount - 1) continue;
 
                         const p1 = other.path[i];
@@ -400,16 +470,15 @@
 
                         const dist = distToSegment(head, p1, p2);
 
-                        if (dist < 8) {
+                        if (dist < 7) {
                             if (other === this) {
                                 this.die('self');
                             } else {
-                                // Kill awarded to other player
-                                other.score += Math.floor(this.score * 0.5) + 300;
-                                other.targetLength += Math.floor(this.targetLength * 0.3);
+                                other.score += Math.floor(this.score * 0.5) + 250;
+                                other.targetLength += Math.floor(this.targetLength * 0.25);
 
                                 if (other === player) {
-                                    addFloatingText(other.x, other.y, `+${Math.floor(this.score * 0.5) + 300} CUT KILL!`, '#00f3ff');
+                                    addFloatingText(other.x, other.y, `+${Math.floor(this.score * 0.5) + 250} CUT KILL!`, '#00f3ff');
                                     sound.kill();
                                 }
                                 this.die('player', other);
@@ -418,11 +487,10 @@
                         }
 
                         // Close Call Detection
-                        if (dist >= 8 && dist < 22 && (Date.now() - this.lastCloseCallTime > 2500)) {
+                        if (dist >= 7 && dist < 20 && (Date.now() - this.lastCloseCallTime > 2500)) {
                             if (this === player) {
-                                this.score += 30;
-                                addFloatingText(this.x, this.y, '+30 CLOSE CALL!', '#ff0055');
-                                sound.closeCall();
+                                this.score += 25;
+                                addFloatingText(this.x, this.y, '+25 CLOSE CALL!', '#ff0044');
                             }
                             this.lastCloseCallTime = Date.now();
                         }
@@ -438,11 +506,11 @@
                     currentTotalLen += Math.hypot(p1.x - p2.x, p1.y - p2.y);
                 }
 
-                while (currentTotalLen > this.targetLength * CELL_SIZE && this.path.length > 2) {
+                while (currentTotalLen > this.targetLength * 10 && this.path.length > 2) {
                     const p0 = this.path[0];
                     const p1 = this.path[1];
                     const segLen = Math.hypot(p1.x - p0.x, p1.y - p0.y);
-                    const excess = currentTotalLen - (this.targetLength * CELL_SIZE);
+                    const excess = currentTotalLen - (this.targetLength * 10);
 
                     if (segLen <= excess) {
                         currentTotalLen -= segLen;
@@ -460,12 +528,12 @@
 
             updateBotAI(dt) {
                 this.botTimer += dt;
-                
-                // Look ahead 3 grid cells
-                const aheadX = this.x + this.dir.x * (CELL_SIZE * 3.5);
-                const aheadY = this.y + this.dir.y * (CELL_SIZE * 3.5);
 
-                let obstacle = (aheadX < CELL_SIZE * 2 || aheadX > WORLD_SIZE - CELL_SIZE * 2 || aheadY < CELL_SIZE * 2 || aheadY > WORLD_SIZE - CELL_SIZE * 2);
+                // Scan ahead for obstacles
+                const aheadX = this.x + this.dir.x * 45;
+                const aheadY = this.y + this.dir.y * 45;
+
+                let obstacle = (aheadX < 30 || aheadX > WORLD_SIZE - 30 || aheadY < 30 || aheadY > WORLD_SIZE - 30);
 
                 if (!obstacle) {
                     for (let other of players) {
@@ -473,7 +541,7 @@
                         for (let i = 0; i < other.path.length - 1; i++) {
                             const p1 = other.path[i];
                             const p2 = other.path[i + 1];
-                            if (distToSegment({ x: aheadX, y: aheadY }, p1, p2) < CELL_SIZE * 1.5) {
+                            if (distToSegment({ x: aheadX, y: aheadY }, p1, p2) < 22) {
                                 obstacle = true;
                                 break;
                             }
@@ -482,13 +550,11 @@
                     }
                 }
 
-                if (obstacle || this.botTimer > 3.0) {
-                    // Turn 90 degrees Left or Right
+                if (obstacle || this.botTimer > 3.5) {
                     const possibleDirs = this.dir.x !== 0 
                         ? [DIR.UP, DIR.DOWN] 
                         : [DIR.LEFT, DIR.RIGHT];
 
-                    // Choose safest direction
                     const choice = possibleDirs[Math.floor(Math.random() * possibleDirs.length)];
                     this.setDirection(choice);
                     this.botTimer = 0;
@@ -501,9 +567,19 @@
 
                 if (this === player) sound.crash();
 
-                // Explode particles
-                for (let i = 0; i < 35; i++) {
-                    particles.push(new Particle(this.x, this.y, this.color));
+                // Drop edible energy bits along the path matching Image 1
+                for (let i = 0; i < this.path.length - 1; i++) {
+                    const p1 = this.path[i];
+                    const p2 = this.path[i + 1];
+                    const segLen = Math.hypot(p2.x - p1.x, p2.y - p1.y);
+                    const steps = Math.floor(segLen / 12);
+
+                    for (let s = 0; s < steps; s++) {
+                        const ratio = s / steps;
+                        const px = p1.x + (p2.x - p1.x) * ratio + (Math.random() - 0.5) * 20;
+                        const py = p1.y + (p2.y - p1.y) * ratio + (Math.random() - 0.5) * 20;
+                        pellets.push(new Pellet(px, py, Math.floor(1 + Math.random() * 3)));
+                    }
                 }
 
                 // Announce in killfeed
@@ -521,12 +597,74 @@
                     setTimeout(() => {
                         if (!gameActive || !this.isBot) return;
                         respawnBot(this);
-                    }, 2500);
+                    }, 2200);
                 }
+            }
+
+            draw(context, isLeader = false) {
+                if (!this.alive || this.path.length < 2) return;
+
+                context.save();
+
+                // Render main line trail matching Image 1
+                context.strokeStyle = this.color;
+                context.shadowColor = this.color;
+                context.shadowBlur = this.isBoosting ? 18 : 10;
+                context.lineWidth = LINE_WIDTH;
+                context.lineCap = 'round';
+                context.lineJoin = 'miter';
+
+                context.beginPath();
+                context.moveTo(this.path[0].x, this.path[0].y);
+                for (let i = 1; i < this.path.length; i++) {
+                    context.lineTo(this.path[i].x, this.path[i].y);
+                }
+                context.stroke();
+
+                // Draw Electric Sparks along line when boosting
+                for (let sp of this.sparks) {
+                    sp.draw(context);
+                }
+
+                // Draw Glowing Circular Head Tip matching Image 1
+                context.fillStyle = '#ffffff';
+                context.shadowColor = this.color;
+                context.shadowBlur = 15;
+
+                context.beginPath();
+                context.arc(this.x, this.y, HEAD_RADIUS, 0, Math.PI * 2);
+                context.fill();
+
+                // Outer glow ring on head
+                context.strokeStyle = this.color;
+                context.lineWidth = 3;
+                context.beginPath();
+                context.arc(this.x, this.y, HEAD_RADIUS + 2, 0, Math.PI * 2);
+                context.stroke();
+
+                // Draw Crown Icon above Leader (Image 1)
+                if (isLeader) {
+                    context.fillStyle = '#fcee0a';
+                    context.shadowColor = '#fcee0a';
+                    context.shadowBlur = 12;
+                    context.font = '900 16px "Font Awesome 6 Free"';
+                    context.textAlign = 'center';
+                    context.fillText('\u00f521', this.x, this.y - 18); // Crown emoji/icon
+                }
+
+                // Draw Player Name Tag Centered below Head (Image 1)
+                context.font = 'bold 12px Ubuntu, sans-serif';
+                context.fillStyle = 'rgba(240, 240, 240, 0.85)';
+                context.shadowColor = '#000000';
+                context.shadowBlur = 6;
+                context.textAlign = 'center';
+                context.fillText(this.name, this.x, this.y + 24);
+
+                context.restore();
             }
         }
 
-        // Helper: distance from point to segment
+        // Math Helper: distance to line segment
         function distToSegment(p, v, w) {
             const l2 = (v.x - w.x) ** 2 + (v.y - w.y) ** 2;
             if (l2 === 0) return Math.hypot(p.x - v.x, p.y - v.y);
@@ -535,39 +673,24 @@
             return Math.hypot(p.x - (v.x + t * (w.x - v.x)), p.y - (v.y + t * (w.y - v.y)));
         }
 
-        class Particle {
-            constructor(x, y, color) {
-                this.x = x;
-                this.y = y;
-                this.color = color;
-                const angle = Math.random() * Math.PI * 2;
-                const speed = 3 + Math.random() * 7;
-                this.vx = Math.cos(angle) * speed;
-                this.vy = Math.sin(angle) * speed;
-                this.life = 1.0;
-                this.decay = 0.025 + Math.random() * 0.03;
-            }
-            update() {
-                this.x += this.vx;
-                this.y += this.vy;
-                this.life -= this.decay;
-            }
-            draw(context) {
-                context.save();
-                context.globalAlpha = Math.max(0, this.life);
-                context.fillStyle = this.color;
-                context.shadowColor = this.color;
-                context.shadowBlur = 8;
-                context.fillRect(this.x - 2, this.y - 2, 4, 4);
-                context.restore();
-            }
-        }
-
         let players = [];
-        let particles = [];
+        let pellets = [];
         let floatingTexts = [];
         let player = null;
         let gameActive = false;
+
+        function spawnRandomPellet() {
+            const px = 30 + Math.random() * (WORLD_SIZE - 60);
+            const py = 30 + Math.random() * (WORLD_SIZE - 60);
+            pellets.push(new Pellet(px, py, 1));
+        }
+
+        function initPellets() {
+            pellets = [];
+            for (let i = 0; i < PELLET_COUNT; i++) {
+                spawnRandomPellet();
+            }
+        }
 
         function addFloatingText(x, y, text, color) {
             floatingTexts.push({ x, y, text, color, life: 1.0, vy: -1.2 });
@@ -576,11 +699,11 @@
         function pushKillfeed(text, type) {
             const container = document.getElementById('killfeedContainer');
             const item = document.createElement('div');
-            item.className = 'cyber-panel px-3 py-1.5 rounded-lg text-xs font-bold text-white border border-cyber-cyan/30 flex items-center space-x-2 animate-fade-in';
+            item.className = 'cyber-panel px-3 py-1.5 rounded-lg text-xs font-bold text-white border border-cyber-lime/30 flex items-center space-x-2 animate-fade-in';
             
             let icon = '<i class="fa-solid fa-bolt text-cyber-yellow"></i>';
             if (type === 'wall') icon = '<i class="fa-solid fa-cube text-gray-400"></i>';
-            if (type === 'kill') icon = '<i class="fa-solid fa-scissors text-cyber-pink"></i>';
+            if (type === 'kill') icon = '<i class="fa-solid fa-scissors text-cyber-red"></i>';
 
             item.innerHTML = `${icon} <span>${text}</span>`;
             container.appendChild(item);
@@ -607,27 +730,25 @@
             const badge = document.getElementById('roleBadge');
             if (isHost) {
                 badge.innerText = `HOST (${players.filter(p => !p.isBot).length} PLAYERS)`;
-                badge.className = 'text-[9px] px-1.5 py-0.5 rounded bg-cyber-pink/20 border border-cyber-pink/40 text-cyber-pink';
+                badge.className = 'text-[9px] px-1.5 py-0.5 rounded bg-cyber-lime/20 border border-cyber-lime/40 text-cyber-lime';
             } else {
                 badge.innerText = 'CLIENT PEER';
                 badge.className = 'text-[9px] px-1.5 py-0.5 rounded bg-cyber-cyan/20 border border-cyber-cyan/40 text-cyber-cyan';
             }
         }
 
-        const botNames = ['NeonGrid', 'Vector82', 'TronByte', 'CypherNode', 'ByteSlayer', 'NullPointer', 'GridGhost', 'LaserTail'];
-        const botColors = ['#ff0055', '#fcee0a', '#a855f7', '#00ff66', '#f97316', '#3b82f6'];
+        const botNames = ['Mighty Commander', 'Surly Bigfoot', 'AlphaRider', 'NeonThunder', 'GridPhantom', 'VoltVect', 'HyperPulse'];
+        const botColors = ['#ccff00', '#ff0044', '#ffaa00', '#00f3ff', '#a855f7', '#00ff66'];
 
         function respawnBot(botRider) {
-            const gx = Math.floor(5 + Math.random() * (WORLD_SIZE / CELL_SIZE - 10));
-            const gy = Math.floor(5 + Math.random() * (WORLD_SIZE / CELL_SIZE - 10));
-            botRider.gridX = gx;
-            botRider.gridY = gy;
-            botRider.x = gx * CELL_SIZE + CELL_SIZE / 2;
-            botRider.y = gy * CELL_SIZE + CELL_SIZE / 2;
+            const gx = 80 + Math.random() * (WORLD_SIZE - 160);
+            const gy = 80 + Math.random() * (WORLD_SIZE - 160);
+            botRider.x = gx;
+            botRider.y = gy;
             botRider.dir = [DIR.UP, DIR.DOWN, DIR.LEFT, DIR.RIGHT][Math.floor(Math.random() * 4)];
             botRider.nextDir = botRider.dir;
-            botRider.path = [{ x: botRider.x, y: botRider.y }];
-            botRider.targetLength = 60;
+            botRider.path = [{ x: gx, y: gy }];
+            botRider.targetLength = 40;
             botRider.score = 0;
             botRider.alive = true;
         }
@@ -637,12 +758,12 @@
 
             const humanCount = players.filter(p => !p.isBot).length;
             const currentBotCount = players.filter(p => p.isBot).length;
-            const desiredBotCount = Math.max(1, TARGET_ROOM_CAPACITY - humanCount);
+            const desiredBotCount = Math.max(2, TARGET_ROOM_CAPACITY - humanCount);
 
             if (currentBotCount < desiredBotCount) {
                 for (let i = currentBotCount; i < desiredBotCount; i++) {
-                    const gx = Math.floor(5 + Math.random() * (WORLD_SIZE / CELL_SIZE - 10));
-                    const gy = Math.floor(5 + Math.random() * (WORLD_SIZE / CELL_SIZE - 10));
+                    const gx = 80 + Math.random() * (WORLD_SIZE - 160);
+                    const gy = 80 + Math.random() * (WORLD_SIZE - 160);
                     const dir = [DIR.UP, DIR.DOWN, DIR.LEFT, DIR.RIGHT][Math.floor(Math.random() * 4)];
                     const name = botNames[Math.floor(Math.random() * botNames.length)];
                     const color = botColors[Math.floor(Math.random() * botColors.length)];
@@ -663,7 +784,7 @@
         }
 
         function initSeamlessNetwork(playerName, callback) {
-            updateStatus('Connecting to Grid Peer Matrix...');
+            updateStatus('Connecting to Peer Grid...');
             myPeer = new Peer();
 
             myPeer.on('open', id => {
@@ -672,13 +793,12 @@
             });
 
             myPeer.on('error', err => {
-                console.warn('Peer network exception, falling back to local host mode:', err);
                 becomeHost(playerName, callback);
             });
         }
 
         function attemptJoinOrHost(playerName, callback) {
-            updateStatus('Locating active Grid lobby...');
+            updateStatus('Searching for active room...');
             const targetHostId = LOBBY_ID_PREFIX + '1';
 
             if (myPeerId === targetHostId) {
@@ -692,17 +812,16 @@
             const connectionTimeout = setTimeout(() => {
                 if (!connected) {
                     conn.close();
-                    updateStatus('No lobby found. Registering as Grid Server...');
                     becomeHost(playerName, callback);
                 }
-            }, 2000);
+            }, 1800);
 
             conn.on('open', () => {
                 connected = true;
                 clearTimeout(connectionTimeout);
                 isHost = false;
                 hostConnection = conn;
-                updateStatus('Connected to Grid Server!');
+                updateStatus('Connected to Grid!');
 
                 conn.send({
                     type: 'JOIN',
@@ -710,7 +829,6 @@
                     peerId: myPeerId
                 });
 
-                setupClientListeners();
                 if (callback) callback();
             });
 
@@ -745,83 +863,56 @@
 
         function setupHostServer(playerName, callback) {
             isHost = true;
-            updateStatus('Grid Server Online!');
+            updateStatus('Grid Server Running!');
 
             myPeer.on('connection', conn => {
                 clientConnections.push(conn);
 
                 conn.on('data', data => {
-                    handleHostData(conn, data);
+                    if (data.type === 'JOIN') {
+                        const gx = 80 + Math.random() * (WORLD_SIZE - 160);
+                        const gy = 80 + Math.random() * (WORLD_SIZE - 160);
+                        const pRider = new Rider(data.peerId, data.name, gx, gy, DIR.RIGHT, '#ccff00', false);
+                        players.push(pRider);
+                        balanceBots();
+                    } else if (data.type === 'INPUT') {
+                        const p = players.find(playerObj => playerObj.id === data.peerId);
+                        if (p) p.setDirection(data.dir);
+                    }
                 });
 
                 conn.on('close', () => {
-                    handleClientDisconnect(conn);
+                    clientConnections = clientConnections.filter(c => c !== conn);
+                    players = players.filter(p => p.id !== conn.peer);
+                    balanceBots();
                 });
             });
 
             if (callback) callback();
         }
 
-        function handleHostData(conn, data) {
-            if (data.type === 'JOIN') {
-                const gx = Math.floor(5 + Math.random() * (WORLD_SIZE / CELL_SIZE - 10));
-                const gy = Math.floor(5 + Math.random() * (WORLD_SIZE / CELL_SIZE - 10));
-                const pRider = new Rider(data.peerId, data.name, gx, gy, DIR.RIGHT, '#ff0055', false);
-                players.push(pRider);
-                peerOrder.push(data.peerId);
-                balanceBots();
+        function drawBackground() {
+            // Dark navy background matching Image 1
+            ctx.fillStyle = '#040d1a';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-                conn.send({ type: 'INIT_STATE', peerOrder });
-            } else if (data.type === 'INPUT') {
-                const p = players.find(playerObj => playerObj.id === data.peerId);
-                if (p) {
-                    p.setDirection(data.dir);
-                }
-            }
-        }
-
-        function handleClientDisconnect(conn) {
-            clientConnections = clientConnections.filter(c => c !== conn);
-            players = players.filter(p => p.id !== conn.peer);
-            peerOrder = peerOrder.filter(id => id !== conn.peer);
-            balanceBots();
-        }
-
-        function setupClientListeners() {
-            hostConnection.on('data', data => {
-                if (data.type === 'INIT_STATE') {
-                    peerOrder = data.peerOrder;
-                }
-            });
-
-            hostConnection.on('close', () => {
-                updateStatus('Host re-rezzed! Performing seamless host migration...');
-                setTimeout(() => {
-                    attemptJoinOrHost(player.name, null);
-                }, 1000);
-            });
-        }
-
-        function drawGrid() {
+            // Render soft circular dotted pattern background (Image 1)
             ctx.save();
-            ctx.strokeStyle = 'rgba(0, 243, 255, 0.08)';
-            ctx.lineWidth = 1;
+            ctx.fillStyle = 'rgba(15, 35, 60, 0.45)';
 
-            const startX = Math.floor((camera.x - canvas.width / 2) / CELL_SIZE) * CELL_SIZE;
-            const endX = startX + canvas.width + CELL_SIZE * 2;
-            const startY = Math.floor((camera.y - canvas.height / 2) / CELL_SIZE) * CELL_SIZE;
-            const endY = startY + canvas.height + CELL_SIZE * 2;
+            const dotSpacing = 30;
+            const startX = Math.floor((camera.x - canvas.width / 2) / dotSpacing) * dotSpacing;
+            const endX = startX + canvas.width + dotSpacing * 2;
+            const startY = Math.floor((camera.y - canvas.height / 2) / dotSpacing) * dotSpacing;
+            const endY = startY + canvas.height + dotSpacing * 2;
 
-            ctx.beginPath();
-            for (let x = startX; x <= endX; x += CELL_SIZE) {
-                ctx.moveTo(x, startY);
-                ctx.lineTo(x, endY);
+            for (let x = startX; x <= endX; x += dotSpacing) {
+                for (let y = startY; y <= endY; y += dotSpacing) {
+                    ctx.beginPath();
+                    ctx.arc(x, y, 6, 0, Math.PI * 2);
+                    ctx.fill();
+                }
             }
-            for (let y = startY; y <= endY; y += CELL_SIZE) {
-                ctx.moveTo(startX, y);
-                ctx.lineTo(endX, y);
-            }
-            ctx.stroke();
             ctx.restore();
         }
 
@@ -837,18 +928,18 @@
 
         function drawMinimap() {
             minimapCtx.clearRect(0, 0, minimapCanvas.width, minimapCanvas.height);
-            minimapCtx.fillStyle = '#02040a';
+            minimapCtx.fillStyle = '#040d1a';
             minimapCtx.fillRect(0, 0, minimapCanvas.width, minimapCanvas.height);
 
             const scale = minimapCanvas.width / WORLD_SIZE;
 
-            minimapCtx.strokeStyle = 'rgba(0, 243, 255, 0.4)';
+            minimapCtx.strokeStyle = 'rgba(0, 243, 255, 0.3)';
             minimapCtx.strokeRect(0, 0, minimapCanvas.width, minimapCanvas.height);
 
             for (let p of players) {
                 if (!p.alive) continue;
-                minimapCtx.fillStyle = p === player ? '#00f3ff' : (p.isBot ? '#fcee0a' : '#ff0055');
-                minimapCtx.fillRect(p.x * scale - 2, p.y * scale - 2, 4, 4);
+                minimapCtx.fillStyle = p === player ? '#ccff00' : (p.isBot ? '#ff0044' : '#00f3ff');
+                minimapCtx.fillRect(p.x * scale - 1.5, p.y * scale - 1.5, 3, 3);
             }
         }
 
@@ -859,7 +950,7 @@
 
             sorted.slice(0, 6).forEach((p, index) => {
                 const row = document.createElement('div');
-                row.className = `flex justify-between items-center px-2 py-0.5 rounded ${p === player ? 'bg-cyber-cyan/20 text-cyber-cyan font-bold border border-cyber-cyan/30' : 'text-gray-300'}`;
+                row.className = `flex justify-between items-center px-2 py-0.5 rounded ${p === player ? 'bg-cyber-lime/20 text-cyber-lime font-bold border border-cyber-lime/30' : 'text-gray-200'}`;
                 
                 const icon = p.isBot ? '<i class="fa-solid fa-robot text-cyber-yellow mr-1" title="Bot"></i>' : '<i class="fa-solid fa-user text-cyber-cyan mr-1" title="Player"></i>';
 
@@ -870,13 +961,13 @@
 
         function initGame(playerName) {
             players = [];
-            particles = [];
             floatingTexts = [];
+            initPellets();
 
-            const gx = Math.floor(10 + Math.random() * (WORLD_SIZE / CELL_SIZE - 20));
-            const gy = Math.floor(10 + Math.random() * (WORLD_SIZE / CELL_SIZE - 20));
+            const gx = 100 + Math.random() * (WORLD_SIZE - 200);
+            const gy = 100 + Math.random() * (WORLD_SIZE - 200);
 
-            player = new Rider(myPeerId || 'local_player', playerName, gx, gy, DIR.RIGHT, '#00f3ff', false);
+            player = new Rider(myPeerId || 'local_player', playerName, gx, gy, DIR.RIGHT, '#ccff00', false);
             players.push(player);
 
             if (isHost) {
@@ -886,26 +977,19 @@
             gameActive = true;
             document.getElementById('menuModal').classList.add('hidden');
             document.getElementById('gameOverModal').classList.add('hidden');
-            
+
             let lastTimestamp = performance.now();
-            
+
             function gameLoop(now) {
                 const dt = Math.min((now - lastTimestamp) / 1000, 0.08);
                 lastTimestamp = now;
 
                 if (gameActive) {
-                    // Camera update
                     camera.update(player.x, player.y);
 
                     // Update Riders
                     for (let p of players) {
                         p.update(dt);
-                    }
-
-                    // Update Particles
-                    for (let i = particles.length - 1; i >= 0; i--) {
-                        particles[i].update();
-                        if (particles[i].life <= 0) particles.splice(i, 1);
                     }
 
                     // Update Floating Texts
@@ -923,71 +1007,38 @@
                     updateRoleBadge();
                 }
 
-                // Render Canvas
+                // Clear & Render
                 ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+                drawBackground();
 
                 ctx.save();
                 ctx.translate(canvas.width / 2 - camera.x, canvas.height / 2 - camera.y);
 
-                drawGrid();
                 drawWorldBounds();
 
-                // Render Rider Line Trails (Strict 90-degree segment rendering)
+                // Draw Energy Pellets / Food Bits
+                for (let pel of pellets) {
+                    pel.draw(ctx);
+                }
+
+                // Determine Leader ID
+                const topPlayer = [...players].sort((a,b) => b.score - a.score)[0];
+
+                // Draw Riders
                 for (let p of players) {
-                    if (p.path.length > 1) {
-                        ctx.save();
-                        ctx.strokeStyle = p.color;
-                        ctx.shadowColor = p.color;
-                        ctx.shadowBlur = p.isBoosting ? 18 : 8;
-                        ctx.lineWidth = p.isBoosting ? 5 : 4;
-                        ctx.lineCap = 'square';
-                        ctx.lineJoin = 'miter';
-
-                        ctx.beginPath();
-                        ctx.moveTo(p.path[0].x, p.path[0].y);
-                        for (let i = 1; i < p.path.length; i++) {
-                            ctx.lineTo(p.path[i].x, p.path[i].y);
-                        }
-                        ctx.stroke();
-                        ctx.restore();
-                    }
+                    p.draw(ctx, p === topPlayer);
                 }
 
-                // Render Rider Heads
-                for (let p of players) {
-                    if (!p.alive) continue;
-                    ctx.save();
-                    ctx.fillStyle = p.color;
-                    ctx.shadowColor = p.color;
-                    ctx.shadowBlur = 12;
-                    ctx.fillRect(p.x - CELL_SIZE / 2, p.y - CELL_SIZE / 2, CELL_SIZE, CELL_SIZE);
-                    
-                    // Eye/Front indicator
-                    ctx.fillStyle = '#ffffff';
-                    const eyeSize = 4;
-                    ctx.fillRect(
-                        p.x + p.dir.x * 4 - eyeSize / 2, 
-                        p.y + p.dir.y * 4 - eyeSize / 2, 
-                        eyeSize, 
-                        eyeSize
-                    );
-                    ctx.restore();
-                }
-
-                // Render Particles
-                for (let pt of particles) {
-                    pt.draw(ctx);
-                }
-
-                // Render Floating Score Texts
+                // Draw Floating Score Texts
                 for (let ft of floatingTexts) {
                     ctx.save();
                     ctx.globalAlpha = Math.max(0, ft.life);
-                    ctx.font = 'bold 14px Orbitron';
+                    ctx.font = 'bold 13px Ubuntu';
                     ctx.fillStyle = ft.color;
                     ctx.shadowColor = ft.color;
                     ctx.shadowBlur = 8;
-                    ctx.fillText(ft.text, ft.x - 20, ft.y);
+                    ctx.fillText(ft.text, ft.x - 15, ft.y);
                     ctx.restore();
                 }
 
@@ -1029,7 +1080,7 @@
             }
         });
 
-        // Touch Swipe Gesture Support
+        // Touch Swipe Gestures
         let touchStartX = 0, touchStartY = 0;
         window.addEventListener('touchstart', e => {
             if (e.touches.length > 0) {
@@ -1062,11 +1113,11 @@
             }
         });
 
-        // Event Listeners
+        // Event Buttons
         document.getElementById('playBtn').addEventListener('click', () => {
             sound.init();
-            const name = document.getElementById('playerNameInput').value.trim() || 'Rider_99';
-            document.getElementById('playBtnText').innerText = 'INITIALIZING...';
+            const name = document.getElementById('playerNameInput').value.trim() || 'PowerRider';
+            document.getElementById('playBtnText').innerText = 'CONNECTING...';
 
             initSeamlessNetwork(name, () => {
                 initGame(name);
@@ -1074,7 +1125,7 @@
         });
 
         document.getElementById('restartBtn').addEventListener('click', () => {
-            const name = document.getElementById('playerNameInput').value.trim() || 'Rider_99';
+            const name = document.getElementById('playerNameInput').value.trim() || 'PowerRider';
             initGame(name);
         });
     </script>
