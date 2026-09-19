@@ -729,7 +729,7 @@
         }
         
         function joinExistingHost() {
-            // Create a client peer with an automatically generated random ID
+            // Create client peer with auto-generated ID
             peer = new Peer(PEER_CONFIG);
         
             peer.on('open', (id) => {
@@ -737,31 +737,67 @@
                 isHost = false;
                 document.getElementById('status-msg').innerText = 'Connecting to Host...';
         
-                // Connect directly to the fixed host ID
-                hostConnection = peer.connect(HOST_ROOM_ID, { relaxed: true });
+                connectToHostWithRetry();
+            });
         
-                hostConnection.on('open', () => {
-                    document.getElementById('status-msg').innerText = 'Connected to Host!';
-                    document.getElementById('status-dot').style.backgroundColor = '#39ff14';
-                    document.getElementById('status-dot').style.boxShadow = '0 0 8px #39ff14';
-                });
+            peer.on('error', (err) => {
+                console.error('Client Peer error:', err);
+                // If client peer fails to setup, retry entire flow
+                setTimeout(initNetwork, 2000);
+            });
+        }
         
-                hostConnection.on('data', (data) => {
-                    if (data.type === 'sync') {
-                        foodPellets = data.pellets;
-                        for (let pid in data.players) {
-                            if (pid !== myId) {
-                                players[pid] = Object.assign(new Player(), data.players[pid]);
-                            }
+        function connectToHostWithRetry() {
+            if (!peer || peer.destroyed) return;
+        
+            hostConnection = peer.connect(HOST_ROOM_ID, {
+                relaxed: true,
+                reliable: true
+            });
+        
+            let connected = false;
+        
+            // Timeout: If connection doesn't open within 3 seconds, retry or host
+            const connectTimeout = setTimeout(() => {
+                if (!connected) {
+                    console.warn('Connection timed out. Retrying...');
+                    if (hostConnection) hostConnection.close();
+                    
+                    // Try connecting one more time; if it keeps failing, assume host is dead and become host
+                    initNetwork();
+                }
+            }, 3000);
+        
+            hostConnection.on('open', () => {
+                connected = true;
+                clearTimeout(connectTimeout);
+                document.getElementById('status-msg').innerText = 'Connected to Host!';
+                document.getElementById('status-dot').style.backgroundColor = '#39ff14';
+                document.getElementById('status-dot').style.boxShadow = '0 0 8px #39ff14';
+            });
+        
+            hostConnection.on('data', (data) => {
+                if (data.type === 'sync') {
+                    foodPellets = data.pellets;
+                    for (let pid in data.players) {
+                        if (pid !== myId) {
+                            players[pid] = Object.assign(new Player(), data.players[pid]);
                         }
                     }
-                });
+                }
+            });
         
-                hostConnection.on('close', () => {
-                    document.getElementById('status-msg').innerText = 'Host disconnected. Reconnecting...';
-                    document.getElementById('status-dot').style.backgroundColor = '#ffaa00';
-                    setTimeout(initNetwork, 1000);
-                });
+            hostConnection.on('error', (err) => {
+                console.error('Connection error:', err);
+                clearTimeout(connectTimeout);
+                setTimeout(connectToHostWithRetry, 1000);
+            });
+        
+            hostConnection.on('close', () => {
+                clearTimeout(connectTimeout);
+                document.getElementById('status-msg').innerText = 'Host disconnected. Reconnecting...';
+                document.getElementById('status-dot').style.backgroundColor = '#ffaa00';
+                setTimeout(initNetwork, 1000);
             });
         }
 
