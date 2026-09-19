@@ -691,20 +691,77 @@
         }
 
         function initNetwork() {
+            // 1. First, try to claim the host ID directly
+            peer = new Peer(HOST_ROOM_ID, PEER_CONFIG);
+        
+            peer.on('open', (id) => {
+                // If successful, this browser IS the host
+                myId = id;
+                isHost = true;
+                document.getElementById('status-msg').innerText = 'Hosting Game (Active)';
+                document.getElementById('status-dot').style.backgroundColor = '#39ff14';
+                document.getElementById('status-dot').style.boxShadow = '0 0 8px #39ff14';
+        
+                // Spawn world elements
+                for (let i = 0; i < 200; i++) spawnPellet();
+                for (let i = 0; i < BOT_TARGET_COUNT; i++) spawnBot();
+        
+                // Listen for incoming join requests from other clients
+                peer.on('connection', (conn) => {
+                    connections[conn.peer] = conn;
+                    conn.on('data', (data) => {
+                        if (data.type === 'input' && players[conn.peer]) {
+                            players[conn.peer].nextDir = data.dir;
+                        }
+                    });
+                });
+            });
+        
+            peer.on('error', (err) => {
+                // 2. If the host ID is already taken, this browser becomes a CLIENT
+                if (err.type === 'unavailable-id') {
+                    joinExistingHost();
+                } else {
+                    console.error('PeerJS error:', err);
+                    setTimeout(initNetwork, 2000);
+                }
+            });
+        }
+        
+        function joinExistingHost() {
+            // Create a client peer with an automatically generated random ID
             peer = new Peer(PEER_CONFIG);
-
+        
             peer.on('open', (id) => {
                 myId = id;
-                document.getElementById('status-msg').innerText = 'Searching for active host...';
-                attemptToJoinHost();
-            });
-
-            peer.on('error', (err) => {
-                if (err.type === 'unavailable-id') {
-                    attemptToJoinHost();
-                } else {
-                    becomeHost();
-                }
+                isHost = false;
+                document.getElementById('status-msg').innerText = 'Connecting to Host...';
+        
+                // Connect directly to the fixed host ID
+                hostConnection = peer.connect(HOST_ROOM_ID, { relaxed: true });
+        
+                hostConnection.on('open', () => {
+                    document.getElementById('status-msg').innerText = 'Connected to Host!';
+                    document.getElementById('status-dot').style.backgroundColor = '#39ff14';
+                    document.getElementById('status-dot').style.boxShadow = '0 0 8px #39ff14';
+                });
+        
+                hostConnection.on('data', (data) => {
+                    if (data.type === 'sync') {
+                        foodPellets = data.pellets;
+                        for (let pid in data.players) {
+                            if (pid !== myId) {
+                                players[pid] = Object.assign(new Player(), data.players[pid]);
+                            }
+                        }
+                    }
+                });
+        
+                hostConnection.on('close', () => {
+                    document.getElementById('status-msg').innerText = 'Host disconnected. Reconnecting...';
+                    document.getElementById('status-dot').style.backgroundColor = '#ffaa00';
+                    setTimeout(initNetwork, 1000);
+                });
             });
         }
 
