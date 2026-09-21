@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Powerline.io</title>
-    <script src="https://cdn.jsdelivr.net/npm/[email protected]/dist/peerjs.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -153,6 +152,13 @@
 
         .btn-play:active {
             transform: scale(0.98);
+        }
+
+        .btn-play:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
         }
 
         .status-text {
@@ -477,6 +483,41 @@
 
         function pick(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
         function randRange(a, b) { return a + Math.random() * (b - a); }
+
+        // ============================================================
+        // PEERJS LOADER -- try several CDNs so a single blocked/unreachable
+        // host (ad-blocker, regional block, transient outage) can't take the
+        // whole game down with an uncaught "Peer is not defined" error.
+        // ============================================================
+        const PEERJS_SOURCES = [
+            'https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js',
+            'https://cdn.jsdelivr.net/npm/[email protected]/dist/peerjs.min.js',
+            'https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.5.2/peerjs.min.js'
+        ];
+
+        function loadScriptOnce(src) {
+            return new Promise((resolve, reject) => {
+                const s = document.createElement('script');
+                s.src = src;
+                s.async = true;
+                s.onload = () => resolve(src);
+                s.onerror = () => reject(new Error('failed to load ' + src));
+                document.head.appendChild(s);
+            });
+        }
+
+        async function ensurePeerJsLoaded() {
+            if (typeof Peer !== 'undefined') return true;
+            for (const src of PEERJS_SOURCES) {
+                try {
+                    await loadScriptOnce(src);
+                    if (typeof Peer !== 'undefined') return true;
+                } catch (e) {
+                    console.warn('Networking library failed to load from', src);
+                }
+            }
+            return typeof Peer !== 'undefined';
+        }
 
         const canvas = document.getElementById('game-canvas');
         const ctx = canvas.getContext('2d');
@@ -1440,7 +1481,17 @@
             startGame();
         }
 
-        Net.start();
+        (async function boot() {
+            setStatus('Loading networking library...', 'wait');
+            const ok = await ensurePeerJsLoaded();
+            if (!ok) {
+                setStatus('Could not load the networking library — check your connection, ad-blocker, or firewall, then reload.', 'err');
+                document.getElementById('play-btn').disabled = true;
+                return;
+            }
+            Net.start();
+        })();
+
         requestAnimationFrame(gameLoop);
     </script>
 </body>
