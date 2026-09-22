@@ -1024,9 +1024,9 @@
                         iceServers: [
                             { urls: 'stun:stun.l.google.com:19302' },
                             { urls: 'stun:stun1.l.google.com:19302' },
-                            { urls: 'turn:openrelay.metered.ca:80', username: 'openrelay', credential: 'openrelay' },
-                            { urls: 'turn:openrelay.metered.ca:443', username: 'openrelay', credential: 'openrelay' },
-                            { urls: 'turn:openrelay.metered.ca:443?transport=tcp', username: 'openrelay', credential: 'openrelay' }
+                            { urls: 'turn:openrelay.metered.ca:80', username: 'openrelayproject', credential: 'openrelayproject' },
+                            { urls: 'turn:openrelay.metered.ca:443', username: 'openrelayproject', credential: 'openrelayproject' },
+                            { urls: 'turn:openrelay.metered.ca:443?transport=tcp', username: 'openrelayproject', credential: 'openrelayproject' }
                         ],
                         iceTransportPolicy: this.useRelayOnly ? 'relay' : 'all'
                     }
@@ -1047,8 +1047,30 @@
                 this.connections = {};
             },
 
+            log(...args) { console.log('[Net]', ...args); },
+
+            // Watches the raw RTCPeerConnection underneath a PeerJS connection
+            // and logs every ICE state change. This is the actual ground truth
+            // for "why is it stuck" -- PeerJS's own events don't always surface
+            // a stalled/failed ICE negotiation as a JS error.
+            watchIce(conn, label) {
+                const attach = () => {
+                    const pc = conn.peerConnection;
+                    if (!pc) { setTimeout(attach, 150); return; }
+                    pc.oniceconnectionstatechange = () => {
+                        this.log(label, 'ICE state ->', pc.iceConnectionState);
+                        if (pc.iceConnectionState === 'checking') setStatus('Negotiating connection...', 'wait');
+                        if (pc.iceConnectionState === 'connected' || pc.iceConnectionState === 'completed') setStatus('Connection established, syncing...', 'wait');
+                        if (pc.iceConnectionState === 'failed') this.log(label, 'ICE FAILED -- no working candidate pair (STUN and TURN both unreachable, or TURN auth rejected)');
+                    };
+                    pc.onicegatheringstatechange = () => this.log(label, 'ICE gathering ->', pc.iceGatheringState);
+                };
+                attach();
+            },
+
             tryBecomeHostOrConnect() {
                 setStatus('Searching for active game...', 'wait');
+                this.log('attempting to claim host id', HOST_ROOM_ID, 'relayOnly=', this.useRelayOnly);
                 const p = new Peer(HOST_ROOM_ID, this.peerConfig());
                 this.peer = p;
                 let settled = false;
@@ -1058,11 +1080,13 @@
                     myId = id;
                     this.isHost = true;
                     this.reconnectAttempts = 0;
+                    this.log('became host, id =', id);
                     this.becomeHostSetup();
                 });
 
                 p.on('error', (err) => {
                     if (settled) return;
+                    this.log('host-claim peer error:', err && err.type, err && err.message);
                     if (err && err.type === 'unavailable-id') {
                         try { p.destroy(); } catch (e) {}
                         this.connectAsClient();
@@ -1072,12 +1096,13 @@
                 });
 
                 p.on('disconnected', () => {
+                    this.log('signaling socket disconnected, attempting peer.reconnect()');
                     if (p && !p.destroyed) p.reconnect();
                 });
             },
 
             connectAsClient() {
-                setStatus('Connecting to host...', 'wait');
+                setStatus('Registering with signaling server...', 'wait');
                 const p = new Peer(this.peerConfig());
                 this.peer = p;
 
@@ -1085,37 +1110,44 @@
                     myId = id;
                     this.isHost = false;
                     this.reconnectAttempts = 0;
+                    this.log('client peer registered, id =', id, '- now dialing host');
                     this.connectToHost();
                 });
 
-                p.on('error', () => {
+                p.on('error', (err) => {
+                    this.log('client peer error:', err && err.type, err && err.message);
                     this.scheduleRetry();
                 });
 
                 p.on('disconnected', () => {
+                    this.log('signaling socket disconnected, attempting peer.reconnect()');
                     if (p && !p.destroyed) p.reconnect();
                 });
             },
 
             connectToHost() {
                 if (!this.peer || this.peer.destroyed) return;
+                setStatus('Connecting to host...', 'wait');
                 const conn = this.peer.connect(HOST_ROOM_ID, { reliable: true });
                 this.hostConn = conn;
+                this.watchIce(conn, 'client->host');
                 let opened = false;
 
                 const timeout = setTimeout(() => {
                     if (!opened) {
+                        this.log('connectToHost timed out after 6s with no data-channel open; forcing TURN-relay-only and retrying');
                         try { conn.close(); } catch (e) {}
                         this.useRelayOnly = true;
                         this.scheduleRetry(500);
                     }
-                }, 5000);
+                }, 6000);
 
                 conn.on('open', () => {
                     opened = true;
                     clearTimeout(timeout);
                     this.reconnectAttempts = 0;
                     this.lastSyncTime = Date.now();
+                    this.log('data channel to host is open');
                     setStatus('Connected!', 'ok');
                     if (isPlaying && myPlayer) {
                         myPlayer.id = myId;
@@ -1130,13 +1162,15 @@
                 conn.on('close', () => {
                     clearTimeout(timeout);
                     if (this.isHost) return;
+                    this.log('connection to host closed');
                     setStatus('Host lost. Reconnecting...', 'wait');
                     this.stopWatchdog();
                     this.scheduleRetry(500);
                 });
 
-                conn.on('error', () => {
+                conn.on('error', (err) => {
                     clearTimeout(timeout);
+                    this.log('connection to host error:', err);
                     this.scheduleRetry(1000);
                 });
             },
@@ -1189,7 +1223,10 @@
                 }
 
                 this.peer.on('connection', (conn) => {
+                    this.log('incoming connection from', conn.peer);
                     this.connections[conn.peer] = conn;
+                    this.watchIce(conn, 'host<-' + conn.peer.slice(0, 6));
+                    conn.on('open', () => this.log('connection to', conn.peer, 'is open'));
                     conn.on('data', (data) => {
                         if (data.type === 'input' && players[conn.peer]) {
                             players[conn.peer].nextDir = data.dir;
@@ -1200,9 +1237,11 @@
                         }
                     });
                     conn.on('close', () => {
+                        this.log('connection to', conn.peer, 'closed');
                         delete this.connections[conn.peer];
                         delete players[conn.peer];
                     });
+                    conn.on('error', (err) => this.log('connection to', conn.peer, 'error:', err));
                 });
 
                 this.startBroadcast();
@@ -1233,6 +1272,11 @@
                 this.reconnectAttempts++;
                 if (this.reconnectAttempts > 4) this.useRelayOnly = true;
                 const d = delay || Math.min(500 * Math.pow(1.5, this.reconnectAttempts), 6000) + Math.random() * 300;
+                this.log('retrying in', Math.round(d), 'ms (attempt', this.reconnectAttempts, ', relayOnly=', this.useRelayOnly, ')');
+                // clean up the stale peer/connection before trying again so we
+                // don't leak half-open sockets across retries
+                if (this.hostConn) { try { this.hostConn.close(); } catch (e) {} this.hostConn = null; }
+                if (this.peer && !this.peer.destroyed) { try { this.peer.destroy(); } catch (e) {} }
                 setTimeout(() => this.tryBecomeHostOrConnect(), d);
             },
 
