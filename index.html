@@ -570,7 +570,8 @@
                         loyalty: randRange(0.25, 1),
                         wildness: randRange(0.1, 1),
                         mistakeChance: randRange(0.01, 0.07),
-                        reengageIn: Math.floor(randRange(20, 70)),
+                        reengageIn: Math.floor(randRange(15, 90)),
+                        currentDir: null,
                         wanderDir: null,
                         targetId: null,
                         pendingDir: null,
@@ -706,42 +707,64 @@
                 }
                 const amLeader = leader && leader.id === this.id;
 
-                // periodically re-decide what this bot is "trying" to do, rather
-                // than recomputing a perfect optimal choice every single frame --
-                // this is what makes the behavior feel intentional but not robotic
-                ai.reengageIn--;
-                if (ai.reengageIn <= 0) {
-                    ai.reengageIn = Math.floor(randRange(25, 80));
-                    ai.targetId = null; // drop old target, re-evaluate below
+                // is there a nearby rival worth reacting quickly to? this is the
+                // ONLY situation that gets faster reflexes / wilder movement --
+                // normal cruising re-decides rarely and holds a straight heading,
+                // just like a real player would
+                let nearestDist = 999999, nearestRival = null;
+                for (let pid in players) {
+                    const other = players[pid];
+                    if (!other.alive || other.id === this.id) continue;
+                    const d = Math.hypot(this.head.x - other.head.x, this.head.y - other.head.y);
+                    if (d < nearestDist) { nearestDist = d; nearestRival = other; }
                 }
+                const inStandoff = nearestRival && nearestDist < 170 && (
+                    amLeader ||
+                    ai.type === 'aggressive' || ai.type === 'skirmisher' ||
+                    (ai.type === 'follower' && leader && nearestRival.id === leader.id)
+                );
 
-                let wantedDir = this.dir;
-
-                if (amLeader) {
-                    wantedDir = this.leaderBehavior();
-                } else if (ai.type === 'follower' && leader && Math.random() < ai.loyalty * 0.6) {
-                    wantedDir = this.followBehavior(leader);
-                } else if ((ai.type === 'aggressive' || ai.type === 'skirmisher') && Math.random() < ai.aggression * 0.55) {
-                    wantedDir = this.attackBehavior();
-                } else if (Math.random() < 0.45) {
-                    wantedDir = this.seekFoodBehavior();
-                } else {
-                    wantedDir = this.wanderBehavior();
-                }
-
-                // "faltering": bots aren't perfect -- occasionally ignore their
-                // plan and flinch in a random direction, or hesitate before
-                // committing to a turn (simulated reaction delay)
                 const possibleDirs = this.dir.x !== 0 ?
                     [{ x: 0, y: 1 }, { x: 0, y: -1 }] :
                     [{ x: 1, y: 0 }, { x: -1, y: 0 }];
 
-                if (Math.random() < ai.mistakeChance + ai.wildness * 0.02) {
-                    wantedDir = pick(possibleDirs);
+                // only make a NEW heading decision periodically -- this is what
+                // produces long straight runs instead of constant micro-turns.
+                // decisions come fast during a standoff, and are rare otherwise.
+                ai.reengageIn--;
+                if (ai.reengageIn <= 0 || !ai.currentDir) {
+                    ai.targetId = null; // drop old target, re-evaluate below
+
+                    if (amLeader) {
+                        ai.currentDir = this.leaderBehavior();
+                    } else if (ai.type === 'follower' && leader && Math.random() < ai.loyalty * 0.6) {
+                        ai.currentDir = this.followBehavior(leader);
+                    } else if ((ai.type === 'aggressive' || ai.type === 'skirmisher') && Math.random() < ai.aggression * 0.55) {
+                        ai.currentDir = this.attackBehavior();
+                    } else if (Math.random() < 0.45) {
+                        ai.currentDir = this.seekFoodBehavior();
+                    } else {
+                        ai.currentDir = this.wanderBehavior();
+                    }
+
+                    // "faltering": bots aren't perfect -- occasionally the fresh
+                    // decision is a flinch in a random direction instead of the
+                    // sensible one. Rolled once per decision, not every frame,
+                    // and noticeably more likely mid-standoff.
+                    const mistakeChance = inStandoff ? ai.mistakeChance * 3 : ai.mistakeChance * 0.3;
+                    if (Math.random() < mistakeChance) {
+                        ai.currentDir = pick(possibleDirs);
+                    }
+
+                    // next decision timing: long straight cruising normally,
+                    // quick back-and-forth reflexes only during a standoff
+                    ai.reengageIn = inStandoff ? Math.floor(randRange(8, 24)) : Math.floor(randRange(110, 260));
                 }
 
+                const wantedDir = ai.currentDir || this.dir;
+
                 let safeDir = null;
-                for (let candidate of [wantedDir, ...possibleDirs, this.dir]) {
+                for (let candidate of [wantedDir, this.dir, ...possibleDirs]) {
                     if (!candidate) continue;
                     if ((candidate.x !== 0 && candidate.x === -this.dir.x) ||
                         (candidate.y !== 0 && candidate.y === -this.dir.y)) continue;
@@ -772,11 +795,19 @@
                     }
                 }
 
+                // if the chosen safe direction can't actually be taken (a wall or
+                // body is in the way), don't keep the stale decision -- force a
+                // fresh one next frame instead of holding a heading into a wall
+                if (safeDir && (safeDir.x !== wantedDir.x || safeDir.y !== wantedDir.y)) {
+                    ai.reengageIn = 0;
+                }
+
                 if (safeDir) {
                     // occasionally hesitate for a few frames before actually
-                    // turning, instead of reacting instantly like a machine
+                    // turning, instead of reacting instantly like a machine --
+                    // skipped during a standoff, where quick reflexes matter
                     if ((safeDir.x !== this.dir.x || safeDir.y !== this.dir.y) &&
-                        Math.random() < 0.35 && ai.pendingFrames <= 0) {
+                        !inStandoff && Math.random() < 0.35 && ai.pendingFrames <= 0) {
                         ai.pendingDir = safeDir;
                         ai.pendingFrames = Math.floor(randRange(1, 7));
                     } else {
@@ -797,13 +828,9 @@
             }
 
             wanderBehavior() {
-                const ai = this.ai;
-                // occasionally pick a fresh lazy direction and stick with it a while,
-                // like someone idly cruising rather than pathing purposefully
-                if (!ai.wanderDir || Math.random() < 0.03 * ai.wildness + 0.005) {
-                    ai.wanderDir = Math.random() < 0.5 ? { x: Math.sign(Math.random() - 0.5) || 1, y: 0 } : { x: 0, y: Math.sign(Math.random() - 0.5) || 1 };
-                }
-                return ai.wanderDir;
+                // pick a lazy direction to cruise in -- how long it's held for
+                // is governed by the outer decision cadence, not here
+                return Math.random() < 0.5 ? { x: Math.sign(Math.random() - 0.5) || 1, y: 0 } : { x: 0, y: Math.sign(Math.random() - 0.5) || 1 };
             }
 
             followBehavior(leader) {
