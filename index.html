@@ -337,43 +337,23 @@
             height: 100%;
         }
 
-        /* ---- Mobile touch controls ---- */
-        #joystick-zone {
+        /* ---- Mobile: subtle ripple where the player taps to steer ---- */
+        .tap-ripple {
             position: absolute;
-            bottom: max(30px, env(safe-area-inset-bottom));
-            left: 30px;
-            width: 130px;
-            height: 130px;
-            display: none;
-            pointer-events: auto;
+            width: 46px;
+            height: 46px;
+            margin-left: -23px;
+            margin-top: -23px;
+            border-radius: 50%;
+            border: 2px solid rgba(57, 255, 20, 0.85);
+            pointer-events: none;
             z-index: 8;
+            animation: tapRipple 0.4s ease-out forwards;
         }
 
-        #joystick-base {
-            position: absolute;
-            top: 0; left: 0;
-            width: 100%;
-            height: 100%;
-            border-radius: 50%;
-            background: rgba(6, 20, 40, 0.55);
-            border: 2px solid rgba(0, 240, 255, 0.35);
-        }
-
-        #joystick-knob {
-            position: absolute;
-            top: 50%; left: 50%;
-            width: 56px;
-            height: 56px;
-            margin-left: -28px;
-            margin-top: -28px;
-            border-radius: 50%;
-            background: rgba(57, 255, 20, 0.75);
-            box-shadow: 0 0 15px rgba(57, 255, 20, 0.6);
-            transition: transform 0.03s linear;
-        }
-
-        .touch-device #joystick-zone {
-            display: block;
+        @keyframes tapRipple {
+            from { transform: scale(0.4); opacity: 0.9; }
+            to { transform: scale(1.3); opacity: 0; }
         }
 
         @media (max-width: 640px), (pointer: coarse) {
@@ -413,7 +393,7 @@
 
             <div class="input-group">
                 <label for="nickname">Enter Nickname</label>
-                <input type="text" id="nickname" maxlength="15" value="PowerRider" placeholder="Player Name" />
+                <input type="text" id="nickname" maxlength="15" value="Player" placeholder="Player Name" />
             </div>
 
             <button class="btn-play" id="play-btn">PLAY NOW</button>
@@ -455,11 +435,6 @@
         <div id="killfeed"></div>
     </div>
 
-    <div id="joystick-zone">
-        <div id="joystick-base"></div>
-        <div id="joystick-knob"></div>
-    </div>
-
     <script>
         const WORLD_SIZE = 4000;
         const BASE_SPEED = 3.8;
@@ -479,7 +454,19 @@
         ];
         const RIDER_NAMES = ['CinoSaval', 'Tiawo', 'Tiapon', 'Xhishua', 'Xhanilla', 'Xiaota', 'Porxioa', 'Miwau',
             'Tempala', 'Dhucai', 'Alapan', 'Xiaoxiao', 'Dompala', 'Jip', 'Indypol', 'HPax', 'Halpal', 'Scram',
-            'Hezo', 'Luwow', 'Swoon', 'Paxolon', 'Scraper', 'Narnia', 'XK2', 'Ento', 'Extrapol'];
+            'Hezo', 'Luwow', 'Swoon', 'Paxolon', 'Scraper', 'Narnia', 'XK2', 'Ento', 'Extrapol', 'grangel',
+            'Shyguy6777', 'ImBackAgain', 'EnterprisingBadger', 'Aristocrack', 'XxBombadierxX', 'JesiLuvMe',
+            'xuiwfguwefgr', 'Valkrie', 'Aaa', 'You', 'TheFragKing', 'iiSimp4U', 'BlackMaster', 'Locust',
+            'NotYourAge', 'Zxphyr', '5 Big Booms', 'lil bro', 'justaguy', 'Frosty', 'UrLocalMenace',
+            '0ffline', 'BaconHair', 'K1ngSlayer', 'MochaBean', 'ILikeTurtles', 'Goonr', 'UnknownUser492',
+            'CatWithAKnife', 'BruhMoment', 'ImNotHim', 'Shadowz', 'LunaWaves', 'BigManTing', 'qwertyuiop123',
+            'Paxzod', 'Player', 'lil_muffin', 'ReaperActual', 'NotAPro123', 'FlamingoFan', 'xxDarkAngelxx',
+            'RealSlimShady', 'MisterNobody', 'brodyiscool', 'C0ldSn1per', 'TinyTimmy', 'XxNoMercyxX', 'ProbablyJFK',
+            'ThatOneGuy', 'just_vibing', 'OreoBandit', 'Hellcat77', 'Fuh nga', 'BlueberryMilk', 'ItsComplicated',
+            'xXVoidWalkerXx', 'DeadlyPanda', 'Player', 'MaxRaype', 'Ray pist', 'BananaJorker',
+            'ZestyLemon', 'Cornball', 'ImHimFr', 'Verity', 'GhostedAgain', 'xxxtentacle', 'S1lent',
+            'MrStealYoWifi', 'my nors', 'YungKrusty', 'CptObvious', '4rchangel', 'NoobMaster420',
+            'Arbi', 'Joebart', 'Suupla48', 'AintReadingAllat'];
 
         function pick(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
         function randRange(a, b) { return a + Math.random() * (b - a); }
@@ -532,6 +519,8 @@
         let players = {};
         let foodPellets = [];
         let sparkParticles = [];
+        let killLog = [];
+        let killLogSeq = 0;
 
         const keys = {};
 
@@ -575,7 +564,14 @@
                         wanderDir: null,
                         targetId: null,
                         pendingDir: null,
-                        pendingFrames: 0
+                        pendingFrames: 0,
+                        // most bots take a beat before their quick standoff
+                        // reflexes kick in -- attackers/skirmishers (the ones
+                        // initiating) react at full speed since they're the
+                        // instigators, not the ones caught off guard
+                        reactionDelayFrames: (type === 'aggressive' || type === 'skirmisher')
+                            ? 0 : Math.floor(randRange(0, 60)),
+                        standoffSince: null
                     };
                 }
             }
@@ -637,6 +633,26 @@
                 }
 
                 this.checkCollisions();
+            }
+
+            // Lightweight movement-only step for entities this machine does NOT
+            // simulate authoritatively (bots and other players, on a non-host
+            // client). It just glides the head forward along the last known
+            // dir/speed from the host -- no AI, no collision/food checks -- so
+            // the entity moves smoothly at 60fps between the ~20-25hz sync
+            // packets instead of visibly snapping/jittering to the corrected
+            // position every time one arrives.
+            extrapolate() {
+                if (!this.alive) return;
+                const targetLen = this.path.length;
+                const newHead = {
+                    x: this.head.x + this.dir.x * this.speed,
+                    y: this.head.y + this.dir.y * this.speed
+                };
+                this.path.unshift(newHead);
+                while (this.path.length > targetLen) {
+                    this.path.pop();
+                }
             }
 
             checkBoosting() {
@@ -724,13 +740,24 @@
                     (ai.type === 'follower' && leader && nearestRival.id === leader.id)
                 );
 
+                // track how long this standoff has been going, so we can hold
+                // back the fast-reflex behavior until this bot's personal
+                // reaction delay has elapsed
+                if (inStandoff) {
+                    if (ai.standoffSince === null) ai.standoffSince = frameCount;
+                } else {
+                    ai.standoffSince = null;
+                }
+                const reacting = inStandoff && (frameCount - ai.standoffSince >= ai.reactionDelayFrames);
+
                 const possibleDirs = this.dir.x !== 0 ?
                     [{ x: 0, y: 1 }, { x: 0, y: -1 }] :
                     [{ x: 1, y: 0 }, { x: -1, y: 0 }];
 
                 // only make a NEW heading decision periodically -- this is what
                 // produces long straight runs instead of constant micro-turns.
-                // decisions come fast during a standoff, and are rare otherwise.
+                // decisions come fast once reacting to a standoff, and are
+                // rare otherwise (or while still "noticing" what's happening).
                 ai.reengageIn--;
                 if (ai.reengageIn <= 0 || !ai.currentDir) {
                     ai.targetId = null; // drop old target, re-evaluate below
@@ -750,15 +777,15 @@
                     // "faltering": bots aren't perfect -- occasionally the fresh
                     // decision is a flinch in a random direction instead of the
                     // sensible one. Rolled once per decision, not every frame,
-                    // and noticeably more likely mid-standoff.
-                    const mistakeChance = inStandoff ? ai.mistakeChance * 3 : ai.mistakeChance * 0.3;
+                    // and noticeably more likely once actually reacting.
+                    const mistakeChance = reacting ? ai.mistakeChance * 3 : ai.mistakeChance * 0.3;
                     if (Math.random() < mistakeChance) {
                         ai.currentDir = pick(possibleDirs);
                     }
 
                     // next decision timing: long straight cruising normally,
-                    // quick back-and-forth reflexes only during a standoff
-                    ai.reengageIn = inStandoff ? Math.floor(randRange(8, 24)) : Math.floor(randRange(110, 260));
+                    // quick back-and-forth reflexes only once actually reacting
+                    ai.reengageIn = reacting ? Math.floor(randRange(8, 24)) : Math.floor(randRange(110, 260));
                 }
 
                 const wantedDir = ai.currentDir || this.dir;
@@ -807,7 +834,7 @@
                     // turning, instead of reacting instantly like a machine --
                     // skipped during a standoff, where quick reflexes matter
                     if ((safeDir.x !== this.dir.x || safeDir.y !== this.dir.y) &&
-                        !inStandoff && Math.random() < 0.35 && ai.pendingFrames <= 0) {
+                        !reacting && Math.random() < 0.35 && ai.pendingFrames <= 0) {
                         ai.pendingDir = safeDir;
                         ai.pendingFrames = Math.floor(randRange(1, 7));
                     } else {
@@ -947,7 +974,19 @@
                 msg = `<b>${killer.name}</b> ⚡ <b>${victim.name}</b>`;
                 killer.score += 50;
             }
-            addKillfeed(msg);
+
+            if (Net.isHost) {
+                // record so non-host clients (who no longer simulate entities
+                // they don't own) can replay this event from the next sync
+                killLogSeq++;
+                killLog.push({ seq: killLogSeq, msg, victimId: victim.id });
+                if (killLog.length > 20) killLog.shift();
+            }
+            if (Net.isHost || victim.id === myId) {
+                // host shows every death it processes; a client shows its own
+                // death immediately rather than waiting on the next sync
+                addKillfeed(msg);
+            }
 
             if (victim.id === myId) {
                 document.getElementById('final-score').innerText = Math.floor(victim.score);
@@ -1013,6 +1052,7 @@
             reconnectAttempts: 0,
             useRelayOnly: false,
             lastSyncTime: 0,
+            lastKillSeq: 0,
             hostWatchdog: null,
             broadcastInterval: null,
             starting: false,
@@ -1192,6 +1232,12 @@
                     for (let pid in players) {
                         if (pid !== myId && !seen.has(pid)) delete players[pid];
                     }
+                    if (data.kills) {
+                        for (const k of data.kills) {
+                            if (k.seq > this.lastKillSeq && k.victimId !== myId) addKillfeed(k.msg);
+                        }
+                        if (data.kills.length) this.lastKillSeq = Math.max(this.lastKillSeq, data.kills[data.kills.length - 1].seq);
+                    }
                 }
             },
 
@@ -1215,6 +1261,8 @@
                 setStatus('Hosting game', 'ok');
                 players = {};
                 foodPellets = [];
+                killLog = [];
+                killLogSeq = 0;
                 for (let i = 0; i < 200; i++) spawnPellet();
                 for (let i = 0; i < BOT_TARGET_COUNT; i++) spawnBot();
                 if (myPlayer && isPlaying) {
@@ -1262,10 +1310,10 @@
                     }
                     for (let cid in this.connections) {
                         if (this.connections[cid].open) {
-                            this.connections[cid].send({ type: 'sync', players: serialized, pellets: foodPellets });
+                            this.connections[cid].send({ type: 'sync', players: serialized, pellets: foodPellets, kills: killLog });
                         }
                     }
-                }, 50);
+                }, 40);
             },
 
             scheduleRetry(delay) {
@@ -1294,7 +1342,7 @@
         };
 
         // ============================================================
-        // INPUT -- keyboard + touch joystick
+        // INPUT -- keyboard + tap-to-turn (mobile)
         // ============================================================
         function applyDirInput(newDir) {
             if (!myPlayer || !myPlayer.alive) return;
@@ -1310,107 +1358,128 @@
             if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') newDir = { x: -1, y: 0 };
             if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') newDir = { x: 1, y: 0 };
             if (newDir) applyDirInput(newDir);
-        });
 
-        // Detect touch-capable devices and reveal the on-screen joystick.
-        if ('ontouchstart' in window || navigator.maxTouchPoints > 0) {
-            document.body.classList.add('touch-device');
-        }
-
-        (function setupJoystick() {
-            const zone = document.getElementById('joystick-zone');
-            const knob = document.getElementById('joystick-knob');
-            let active = false;
-            let centerX = 0, centerY = 0;
-            const maxRadius = 45;
-
-            function start(clientX, clientY) {
-                active = true;
-                const rect = zone.getBoundingClientRect();
-                centerX = rect.left + rect.width / 2;
-                centerY = rect.top + rect.height / 2;
-                move(clientX, clientY);
-            }
-
-            function move(clientX, clientY) {
-                if (!active) return;
-                let dx = clientX - centerX;
-                let dy = clientY - centerY;
-                const dist = Math.hypot(dx, dy);
-                const clamped = Math.min(dist, maxRadius);
-                const angle = Math.atan2(dy, dx);
-                const kx = Math.cos(angle) * clamped;
-                const ky = Math.sin(angle) * clamped;
-                knob.style.transform = `translate(${kx}px, ${ky}px)`;
-
-                if (dist > 12) {
-                    const newDir = Math.abs(dx) > Math.abs(dy) ? { x: Math.sign(dx), y: 0 } : { x: 0, y: Math.sign(dy) };
-                    applyDirInput(newDir);
+            if (e.key === 'Enter') {
+                const playBtn = document.getElementById('play-btn');
+                const respawnBtn = document.getElementById('respawn-btn');
+                if (document.getElementById('death-screen').style.display === 'flex') {
+                    respawnBtn.click();
+                } else if (document.getElementById('menu-screen').style.display !== 'none') {
+                    playBtn.click();
                 }
             }
+        });
 
-            function end() {
-                active = false;
-                knob.style.transform = 'translate(0px, 0px)';
+        // Tap-to-turn: the player's head is always rendered at the center of
+        // the screen (the camera follows it), so a tap's offset from screen
+        // center tells us which way to turn -- same axis-snapping logic as
+        // the keyboard controls, just driven by where you tapped instead.
+        (function setupTapToTurn() {
+            function showTapRipple(x, y) {
+                const el = document.createElement('div');
+                el.className = 'tap-ripple';
+                el.style.left = x + 'px';
+                el.style.top = y + 'px';
+                document.body.appendChild(el);
+                setTimeout(() => el.remove(), 420);
             }
 
-            zone.addEventListener('touchstart', (e) => {
+            function handleTap(clientX, clientY) {
+                if (!myPlayer || !myPlayer.alive) return;
+                const cx = window.innerWidth / 2;
+                const cy = window.innerHeight / 2;
+                const dx = clientX - cx;
+                const dy = clientY - cy;
+                if (Math.hypot(dx, dy) < 24) return; // ignore taps right on top of the head
+                const newDir = Math.abs(dx) > Math.abs(dy) ? { x: Math.sign(dx), y: 0 } : { x: 0, y: Math.sign(dy) };
+                applyDirInput(newDir);
+                showTapRipple(clientX, clientY);
+            }
+
+            canvas.addEventListener('touchstart', (e) => {
                 e.preventDefault();
                 const t = e.changedTouches[0];
-                start(t.clientX, t.clientY);
+                handleTap(t.clientX, t.clientY);
             }, { passive: false });
 
-            zone.addEventListener('touchmove', (e) => {
-                e.preventDefault();
-                const t = e.changedTouches[0];
-                move(t.clientX, t.clientY);
-            }, { passive: false });
-
-            zone.addEventListener('touchend', (e) => {
-                e.preventDefault();
-                end();
-            }, { passive: false });
-
-            zone.addEventListener('touchcancel', end);
-
-            // mouse fallback so it's testable on desktop too
-            zone.addEventListener('mousedown', (e) => start(e.clientX, e.clientY));
-            window.addEventListener('mousemove', (e) => { if (active) move(e.clientX, e.clientY); });
-            window.addEventListener('mouseup', end);
+            // click-to-turn also works on desktop, at no extra cost
+            canvas.addEventListener('mousedown', (e) => handleTap(e.clientX, e.clientY));
         })();
 
         // ============================================================
         // GAME LOOP / RENDER
         // ============================================================
-        function gameLoop() {
-            for (let pid in players) {
-                players[pid].update();
-            }
+        // ============================================================
+        // GAME LOOP -- simulation runs on a setInterval so it keeps ticking
+        // (albeit throttled by the browser) when the tab is backgrounded,
+        // instead of fully freezing the way a pure requestAnimationFrame loop
+        // does. Rendering stays on rAF since there's no point drawing a
+        // hidden tab.
+        // ============================================================
+        let frameCount = 0;
+        let simTimer = null;
 
+        function simTick() {
+            frameCount++;
+            for (let pid in players) {
+                const p = players[pid];
+                if (Net.isHost || pid === myId) {
+                    p.update(); // authoritative simulation
+                } else {
+                    p.extrapolate(); // smooth glide until the next sync corrects it
+                }
+            }
+        }
+
+        function startSimLoop() {
+            if (simTimer) clearInterval(simTimer);
+            simTimer = setInterval(simTick, 1000 / 60);
+        }
+
+        function renderLoop() {
             if (myPlayer && myPlayer.alive) {
                 camera.x += (myPlayer.head.x - camera.x) * 0.1;
                 camera.y += (myPlayer.head.y - camera.y) * 0.1;
             }
-
             render();
-            requestAnimationFrame(gameLoop);
+            requestAnimationFrame(renderLoop);
         }
 
-        function render() {
-            canvas.width = window.innerWidth;
-            canvas.height = window.innerHeight;
+        // ============================================================
+        // CANVAS RESIZE -- sized once (not every frame) with the device
+        // pixel ratio baked in so mobile/retina screens render crisp instead
+        // of blurry, while all drawing code below still works in plain CSS
+        // pixel coordinates via viewW/viewH.
+        // ============================================================
+        let viewW = window.innerWidth;
+        let viewH = window.innerHeight;
 
+        function resizeCanvas() {
+            const dpr = window.devicePixelRatio || 1;
+            viewW = window.innerWidth;
+            viewH = window.innerHeight;
+            canvas.width = Math.round(viewW * dpr);
+            canvas.height = Math.round(viewH * dpr);
+            canvas.style.width = viewW + 'px';
+            canvas.style.height = viewH + 'px';
+            ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        }
+        window.addEventListener('resize', resizeCanvas);
+        window.addEventListener('orientationchange', resizeCanvas);
+        resizeCanvas();
+
+        function render() {
             ctx.fillStyle = '#060d1a';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.fillRect(0, 0, viewW, viewH);
 
             ctx.save();
-            ctx.translate(canvas.width / 2 - camera.x, canvas.height / 2 - camera.y);
+            ctx.translate(viewW / 2 - camera.x, viewH / 2 - camera.y);
 
             ctx.fillStyle = 'rgba(255, 255, 255, 0.03)';
-            const startX = Math.floor((camera.x - canvas.width / 2) / GRID_SPACING) * GRID_SPACING;
-            const endX = camera.x + canvas.width / 2;
-            const startY = Math.floor((camera.y - canvas.height / 2) / GRID_SPACING) * GRID_SPACING;
-            const endY = camera.y + canvas.height / 2;
+            const startX = Math.floor((camera.x - viewW / 2) / GRID_SPACING) * GRID_SPACING;
+            const endX = camera.x + viewW / 2;
+            const startY = Math.floor((camera.y - viewH / 2) / GRID_SPACING) * GRID_SPACING;
+            const endY = camera.y + viewH / 2;
 
             for (let x = startX; x < endX; x += GRID_SPACING) {
                 for (let y = startY; y < endY; y += GRID_SPACING) {
@@ -1563,7 +1632,8 @@
             Net.start();
         })();
 
-        requestAnimationFrame(gameLoop);
+        startSimLoop();
+        requestAnimationFrame(renderLoop);
     </script>
 </body>
 </html>
